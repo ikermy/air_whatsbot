@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: air_whatsbot HTTP API
+  description: HTTP API управления WhatsApp-ботами. RPC API звонков доступен по gRPC на порту 9090.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: HTTP server
+
+tags:
+  - name: WhatsApp
+    description: Управление WhatsApp-ботом
+
+paths:
+  /metrics:
+    get:
+      tags: [Monitoring]
+      summary: Получить Prometheus-метрики
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Метрики Prometheus
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /whats/available:
+    get:
+      tags: [WhatsApp]
+      summary: Проверить доступность WhatsApp-сервиса
+      operationId: checkWhatsAppAvailability
+      responses:
+        '200':
+          description: Сервис доступен
+
+  /whats/getname:
+    get:
+      tags: [WhatsApp]
+      summary: Получить имя WhatsApp-бота
+      operationId: getWhatsAppBotName
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Имя бота
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bot_name]
+                properties:
+                  bot_name:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+
+  /whats/enable:
+    get:
+      tags: [WhatsApp]
+      summary: Запустить WhatsApp-бота
+      operationId: enableWhatsAppBot
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          $ref: '#/components/responses/BotStarted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /whats/disable:
+    get:
+      tags: [WhatsApp]
+      summary: Остановить WhatsApp-бота
+      operationId: disableWhatsAppBot
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          $ref: '#/components/responses/BotStopped'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /whats/restart:
+    get:
+      tags: [WhatsApp]
+      summary: Перезапустить WhatsApp-бота
+      operationId: restartWhatsAppBot
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Бот перезапущен или перезапуск выполняется
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /whats/ws:
+    get:
+      tags: [WhatsApp]
+      summary: WebSocket авторизации и сообщений WhatsApp
+      operationId: whatsAppWebSocket
+      description: 'Требует query-параметр uid и Upgrade: websocket.'
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      x-websocket: true
+      responses:
+        '101':
+          description: WebSocket-соединение установлено
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /whats/contacts/ws:
+    get:
+      tags: [WhatsApp]
+      summary: Получить контакты через WebSocket
+      operationId: whatsAppContactsWebSocket
+      description: 'Требует query-параметр uid и Upgrade: websocket. Сервер передаёт JSON-сообщения контактов.'
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      x-websocket: true
+      responses:
+        '101':
+          description: WebSocket-соединение установлено
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  parameters:
+    UserId:
+      name: uid
+      in: query
+      required: true
+      description: ID пользователя, которому принадлежит бот
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        maximum: 4294967295
+
+  schemas:
+    StatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          examples: [bot started successfully, bot stopped successfully, bot reload in progress]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+  responses:
+    BotStarted:
+      description: Бот запущен
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StatusResponse'
+    BotStopped:
+      description: Бот остановлен
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StatusResponse'
+    BadRequest:
+      description: Некорректный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    MethodNotAllowed:
+      description: HTTP-метод не поддерживается
+    InternalError:
+      description: Внутренняя ошибка сервиса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+x-grpc:
+  server:
+    address: localhost:9090
+    service: calls.v1.Calls
+  methods:
+    StartOutgoingCall:
+      request: StartOutgoingCallRequest
+      response: StartOutgoingCallResponse
+    SubscribeCallEvents:
+      request: SubscribeCallEventsRequest
+      response: CallEvent
+      streaming: server
+    HangupCall:
+      request: HangupCallRequest
+      response: HangupCallResponse
