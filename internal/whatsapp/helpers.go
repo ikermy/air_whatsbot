@@ -75,10 +75,8 @@ func (u *User) userMasterKey(userID uint32) [32]byte {
 		err           error
 	)
 
-	if u.rpc != nil {
-		if userMasterKey, err = u.rpc.GetUserMasterKey(u.ctx, userID); err == nil {
-			return userMasterKey
-		}
+	if userMasterKey, err = u.getMasterKey(userID); err == nil {
+		return userMasterKey
 	}
 
 	logger.Warn("Не удалось получить мастер-ключ пользователя: %v", err, userID)

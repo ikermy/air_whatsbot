@@ -80,17 +80,18 @@ func New(parent context.Context) *App {
 		logger.Fatal(fmt.Errorf("ошибка создания rpc клиента: %w", err))
 	}
 
+	cachedMasterKeys := newCachedMasterKeyClient(rpcClient)
 	e := endpoint.New(ctx, d)
 	m := model.NewModelRouter(ctx, d,
 		model.WithDialogSaver(e),
-		model.WithMasterKeyProvider(rpcClient),
+		model.WithMasterKeyProvider(cachedMasterKeys),
 		openai.NewAsRouterOption(),
 		mistral.NewAsRouterOption(),
 		google.NewAsRouterOption(),
 	)
 
 	d.SetMasterKeyResolver(func(userId uint32) ([32]byte, bool) {
-		mk, err := rpcClient.GetUserMasterKey(context.Background(), userId)
+		mk, err := cachedMasterKeys.GetUserMasterKey(context.Background(), userId)
 		if err != nil {
 			return [32]byte{}, false
 		}

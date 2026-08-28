@@ -131,7 +131,9 @@ type User struct {
 	// Для управления кешированием первого взаимодействия
 	redisCache CacheMethods
 	// Получение ключа пользователя
-	rpc ORCClient
+	rpc         ORCClient
+	masterKeyMu sync.Mutex
+	masterKeys  map[uint32]cachedMasterKey
 	// Канал для запуска горутины слушателя
 	StartCh chan model.StartCh
 }
@@ -158,6 +160,7 @@ func New(parent context.Context, d DB, m Model, e Endpoint, c CRM, o ORCClient, 
 		mod:        m,
 		crm:        c,
 		rpc:        o,
+		masterKeys: make(map[uint32]cachedMasterKey),
 		redisCache: newRedisKnownResponderCache(redisClient),
 		StartCh:    make(chan model.StartCh, 100),
 	}
@@ -1658,11 +1661,11 @@ func (u *User) createOrUpdateBot(userID uint32, containerData *JSONDeviceStore, 
 	}
 
 	// Создаем новый бот
-	return u.initializeBot(userID, containerData, assist)
+	return u.initializeBot(userID, containerData, assist, true)
 }
 
 // Инициализирует нового бота с заданными параметрами
-func (u *User) initializeBot(userID uint32, tokenData *JSONDeviceStore, assist *model.Assistant) (*Bot, error) {
+func (u *User) initializeBot(userID uint32, tokenData *JSONDeviceStore, assist *model.Assistant, autoConnect bool) (*Bot, error) {
 	// Создаем логгер для этого пользователя
 	//logger := waLog.Stdout(fmt.Sprintf("WhatsApp[%d]", userID), "INFO", true)
 
@@ -1774,6 +1777,10 @@ func (u *User) initializeBot(userID uint32, tokenData *JSONDeviceStore, assist *
 			close(syncComplete)
 		}
 	})
+
+	if !autoConnect {
+		return bot, nil
+	}
 
 	// Запускаем подключение в отдельной горутине
 	go func() {
@@ -2138,7 +2145,7 @@ func (u *User) StartUserBot(userId uint32) error {
 
 	// Создаем новый бот
 	logger.Debug("Создание нового бота...", userId)
-	bot, err := u.initializeBot(userData.UserId, userBotContainer, assistModel)
+	bot, err := u.initializeBot(userData.UserId, userBotContainer, assistModel, true)
 	if err != nil {
 		logger.Error("Ошибка создания бота: %v", err, userId)
 		return fmt.Errorf("ошибка создания бота: %w", err)

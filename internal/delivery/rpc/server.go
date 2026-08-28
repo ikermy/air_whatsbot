@@ -2,17 +2,21 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net"
 	"strings"
 
 	"air_whatsbot/internal/whatsapp"
 
 	"github.com/ikermy/air-common/pkg/comdom"
+	"github.com/ikermy/air-common/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/purpshell/meowcaller"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type CallAPI interface {
@@ -71,6 +75,9 @@ func (s *Server) SubscribeCallEvents(req *SubscribeCallEventsRequest, stream grp
 	events, err := s.api.SubscribeCallEvents(stream.Context(), req.GetUserId(), strings.TrimSpace(req.GetCallId()), req.GetAfterSequence())
 	if err != nil {
 		logger.Error("RPC SubscribeCallEvents failed: %v", err)
+		if errors.Is(err, whatsapp.ErrCallNotFound) {
+			return status.Errorf(codes.NotFound, "%v", err)
+		}
 		return err
 	}
 	for {
@@ -83,12 +90,8 @@ func (s *Server) SubscribeCallEvents(req *SubscribeCallEventsRequest, stream grp
 				logger.Debug("RPC SubscribeCallEvents completed: user_id=%d call_id=%s", req.GetUserId(), req.GetCallId())
 				return nil
 			}
-			if event.Type == "token_usage" {
-				logger.Debug("RPC SubscribeCallEvents ignored non-user event: call_id=%s sequence=%d raw_type=%s", event.CallID, event.Sequence, event.Type)
-				continue
-			}
 			protoEvent := toProtoEvent(req.GetUserId(), event)
-			logger.Debug("RPC SubscribeCallEvents event: call_id=%s sequence=%d raw_type=%s proto_type=%s delta=%q text=%q response_id=%s error=%q", event.CallID, event.Sequence, event.Type, protoEvent.GetType().String(), event.Delta, event.Text, event.ResponseID, protoEvent.GetError())
+			logger.Debug("RPC SubscribeCallEvents event: call_id=%s sequence=%d raw_type=%s type=%s delta=%q text=%q response_id=%s error=%q", event.CallID, event.Sequence, event.Type, protoEvent.GetType(), event.Delta, event.Text, event.ResponseID, protoEvent.GetError())
 			if err := stream.Send(protoEvent); err != nil {
 				logger.Debug("RPC SubscribeCallEvents send failed: call_id=%s: %v", req.GetCallId(), err)
 				return err
@@ -113,54 +116,52 @@ func (s *Server) HangupCall(_ context.Context, req *HangupCallRequest) (*HangupC
 }
 
 func toProtoEvent(_ uint32, event whatsapp.CallEvent) *CallEvent {
+	normalized := model.NormalizeRealtimeEvent(model.RealtimeEvent{
+		Type: event.Type, Text: event.Text, Delta: event.Delta, Err: event.Err, ResponseID: event.ResponseID, Data: event.Data, Files: event.Files,
+	})
 	result := &CallEvent{
 		CallId:          event.CallID,
 		Sequence:        event.Sequence,
 		TimestampUnixMs: event.Timestamp.UnixMilli(),
 		Provider:        CallProvider_CALL_PROVIDER_WHATSAPP,
-		Type:            callEventType(event.Type, event.Text, event.Delta),
-		Delta:           event.Delta,
-		Text:            event.Text,
-		ResponseId:      event.ResponseID,
+		Type:            normalized.Type,
+		Role:            normalized.Role,
+		Phase:           normalized.Phase,
+		Delta:           normalized.Delta,
+		Text:            normalized.Text,
+		ResponseId:      normalized.ResponseID,
 	}
-	if event.Err != nil {
+	if normalized.Usage != nil {
+		result.Usage = toStruct(normalized.Usage)
+	}
+	if normalized.Payload != nil {
+		result.Payload = toStruct(normalized.Payload)
+	}
+	for _, file := range normalized.Files {
+		result.Files = append(result.Files, &CallFile{Type: string(file.Type), Url: file.URL, FileName: file.FileName, Caption: file.Caption})
+	}
+	if normalized.Error != "" {
+		result.Error = normalized.Error
+	} else if event.Err != nil {
 		result.Error = event.Err.Error()
 	}
 	return result
 }
 
-func callEventType(eventType, text, delta string) CallEventType {
-	if value, ok := map[string]CallEventType{
-		"call_started":           CallEventType_CALL_STARTED,
-		"realtime_starting":      CallEventType_REALTIME_STARTING,
-		"realtime_started":       CallEventType_REALTIME_STARTED,
-		"realtime_subscribed":    CallEventType_REALTIME_SUBSCRIBED,
-		"audio_bridge_started":   CallEventType_AUDIO_BRIDGE_STARTED,
-		"call_connected":         CallEventType_CALL_CONNECTED,
-		"input_transcript_delta": CallEventType_INPUT_TRANSCRIPT_DELTA,
-		"transcript_delta":       CallEventType_INPUT_TRANSCRIPT_DELTA,
-		"input_transcript_done":  CallEventType_INPUT_TRANSCRIPT_DONE,
-		"transcript":             CallEventType_INPUT_TRANSCRIPT_DONE,
-		"response_started":       CallEventType_RESPONSE_STARTED,
-		"response_text_delta":    CallEventType_RESPONSE_TEXT_DELTA,
-		"response_done":          CallEventType_RESPONSE_DONE,
-		"error":                  CallEventType_ERROR,
-		"call_ended":             CallEventType_CALL_ENDED,
-	}[eventType]; ok {
-		return value
+func toStruct(value any) *structpb.Struct {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil
 	}
-	if eventType == "token_usage" {
-		return CallEventType_CALL_EVENT_TYPE_UNSPECIFIED
+	var fields map[string]any
+	if json.Unmarshal(data, &fields) != nil {
+		return nil
 	}
-	// Compatibility fallback for air-common versions that emitted transcript
-	// events without a stable event type. Never expose these as enum 0 when
-	// the payload clearly identifies a text delta or a completed response.
-	if text != "" || delta != "" {
-		logger.Debug("Unknown realtime event type %q with payload, mapping to RESPONSE_TEXT_DELTA", eventType)
-		return CallEventType_RESPONSE_TEXT_DELTA
+	result, err := structpb.NewStruct(fields)
+	if err != nil {
+		return nil
 	}
-	logger.Debug("Unknown realtime event type %q without payload, mapping to RESPONSE_DONE", eventType)
-	return CallEventType_RESPONSE_DONE
+	return result
 }
 
 func (s *Server) ListenAndServe(ctx context.Context) error {

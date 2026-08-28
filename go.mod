@@ -5,14 +5,14 @@ go 1.26.0
 require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/ikermy/air-common v1.50.94
+	github.com/ikermy/air-common v1.50.98
 	github.com/ikermy/air-logger/v2 v2.1.4
 	github.com/prometheus/client_golang v1.24.1
 	github.com/purpshell/meowcaller v0.0.0-20260811012811-27a3c6b18657
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/rs/zerolog v1.35.1
 	go.mau.fi/whatsmeow v0.0.0-20260821141805-33cfac511629
-	google.golang.org/grpc v1.83.1
+	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.57.0
 )
@@ -56,7 +56,7 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260825221802-da73d73af1c5 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	modernc.org/libc v1.75.5 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

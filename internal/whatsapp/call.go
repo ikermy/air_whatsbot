@@ -4,6 +4,7 @@ import (
 	"air_whatsbot/internal/metrics"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -17,6 +18,8 @@ import (
 	"github.com/purpshell/meowcaller"
 	"go.mau.fi/whatsmeow/types"
 )
+
+var ErrCallNotFound = errors.New("call not found")
 
 const (
 	callSetupTimeout          = 45 * time.Second
@@ -53,6 +56,8 @@ type CallEvent struct {
 	Err        error
 	Sequence   uint64
 	Timestamp  time.Time
+	Data       []byte
+	Files      []model.File
 }
 
 type CallEventHandler func(CallEvent)
@@ -135,7 +140,7 @@ func (b *Bot) registerCallSession(call *meowcaller.Call, session *callSession) {
 func (b *Bot) SubscribeCallEvents(ctx context.Context, callID string, afterSequence uint64) (<-chan CallEvent, error) {
 	value, ok := b.activeCalls.Load(callID)
 	if !ok {
-		return nil, fmt.Errorf("call %s not found", callID)
+		return nil, fmt.Errorf("%w: %s", ErrCallNotFound, callID)
 	}
 	session := value.(*callSession)
 	return session.eventHub.subscribe(ctx, afterSequence)
@@ -351,11 +356,11 @@ func (b *Bot) startRealtimeCall(session *callSession, respID uint64) error {
 					return
 				}
 				if event.Type == "error" {
-					session.emitEvent(CallEvent{Type: event.Type, Delta: event.Delta, Text: event.Text, ResponseID: event.ResponseID, Err: event.Err})
+					session.emitEvent(CallEvent{Type: event.Type, Delta: event.Delta, Text: event.Text, ResponseID: event.ResponseID, Err: event.Err, Data: event.Data, Files: event.Files})
 					b.failCallRealtime(session.call, event.Err)
 					return
 				}
-				session.emitEvent(CallEvent{Type: event.Type, Delta: event.Delta, Text: event.Text, ResponseID: event.ResponseID, Err: event.Err})
+				session.emitEvent(CallEvent{Type: event.Type, Delta: event.Delta, Text: event.Text, ResponseID: event.ResponseID, Err: event.Err, Data: event.Data, Files: event.Files})
 				if event.Type == "response_done" {
 					metrics.WhatsAppCallResponses.WithLabelValues(metrics.BotLabel(b.userID), "response_done").Inc()
 				}

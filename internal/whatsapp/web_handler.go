@@ -20,9 +20,6 @@ func (u *User) AuthWebSocketHandler(h http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Очищаем предыдущие сессии для этого пользователя
-	u.CleanupExistingAuthSessions(userId)
-
 	// Создаем уникальный ID сессии
 	sessionID := fmt.Sprintf("auth_%d_%d", userId, time.Now().UnixNano())
 
@@ -31,14 +28,6 @@ func (u *User) AuthWebSocketHandler(h http.ResponseWriter, r *http.Request) {
 
 	// Создаем контекст для управления горутиной авторизации
 	authCtx, cancelAuth := context.WithCancel(context.Background())
-
-	// Сохраняем каналы в карте активных сессий
-	authSessions.Lock()
-	authSessions.sessions[sessionID] = &AuthSession{
-		StateChan: stateChan,
-		UserId:    userId,
-	}
-	authSessions.Unlock()
 
 	// Настраиваем WebSocket
 	upgrader := websocket.Upgrader{
@@ -51,8 +40,32 @@ func (u *User) AuthWebSocketHandler(h http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Error("Ошибка установки WebSocket: %v", err, userId)
 		cancelAuth()
+		authSessions.Lock()
+		delete(authSessions.sessions, sessionID)
+		authSessions.Unlock()
 		return
 	}
+
+	// Проверяем и регистрируем сессию уже после Upgrade. Ошибки авторизации
+	// должны возвращаться в формате AuthState, а не обычного HTTP-ответа:
+	// клиент ожидает поле type в каждом сообщении WebSocket.
+	authSessions.Lock()
+	for _, session := range authSessions.sessions {
+		if session.UserId == userId {
+			authSessions.Unlock()
+			_ = conn.WriteJSON(AuthState{
+				Type:    "error",
+				Payload: "Авторизация WhatsApp уже выполняется",
+			})
+			_ = conn.Close()
+			return
+		}
+	}
+	authSessions.sessions[sessionID] = &AuthSession{
+		StateChan: stateChan,
+		UserId:    userId,
+	}
+	authSessions.Unlock()
 
 	// Канал для обработки закрытия соединения
 	done := make(chan struct{})
@@ -69,17 +82,8 @@ func (u *User) AuthWebSocketHandler(h http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Флаг закрытия stateChan
-	stateChannelClosed := false
-	var stateChannelMutex sync.Mutex
-
 	// Безопасная отправка в stateChan
 	safeSendState := func(state AuthState) bool {
-		stateChannelMutex.Lock()
-		defer stateChannelMutex.Unlock()
-		if stateChannelClosed {
-			return false
-		}
 		select {
 		case stateChan <- state:
 			return true
@@ -97,14 +101,6 @@ func (u *User) AuthWebSocketHandler(h http.ResponseWriter, r *http.Request) {
 		authSessions.Lock()
 		delete(authSessions.sessions, sessionID)
 		authSessions.Unlock()
-
-		// Безопасно закрываем stateChan
-		stateChannelMutex.Lock()
-		if !stateChannelClosed {
-			close(stateChan)
-			stateChannelClosed = true
-		}
-		stateChannelMutex.Unlock()
 
 		_ = conn.Close()
 	}()

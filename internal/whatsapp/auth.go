@@ -54,7 +54,6 @@ func (u *User) CleanupExistingAuthSessions(userId uint32) {
 			default:
 				// канал переполнен или закрыт
 			}
-			close(session.StateChan)
 			delete(authSessions.sessions, sessionID)
 		}
 	}
@@ -116,7 +115,10 @@ func (u *User) AuthenticateWithQRForWeb(userID uint32, stateChan chan<- AuthStat
 		assist := model.Assistant{UserID: userID}
 
 		// Инициализируем бота
-		bot, err := u.initializeBot(userID, deviceStore, &assist)
+		// Авторизационный бот подключается ниже через GetQRChannel/Connect.
+		// Не запускаем автоматическое подключение из initializeBot, иначе
+		// появляются два параллельных сценария авторизации.
+		bot, err := u.initializeBot(userID, deviceStore, &assist, false)
 		if err != nil {
 			logger.Error("Ошибка инициализации бота: %v", err, userID)
 			safeStateSend(AuthState{
@@ -284,6 +286,13 @@ func (u *User) AuthenticateWithQRForWeb(userID uint32, stateChan chan<- AuthStat
 		if err := bot.container.SaveJSON(u.ctx, userID, u.userMasterKey(userID), true); err != nil {
 			logger.Error("Предупреждение: не удалось сохранить данные устройства: %v", err, userID)
 		}
+		// SaveJSON при firstAuthorization записывает значения по умолчанию
+		// только в БД. Синхронизируем также поля временного бота, чтобы они
+		// не оставались false до создания рабочего бота.
+		bot.container.text = true
+		bot.container.call = true
+		bot.textMessage = true
+		bot.voiceCall = true
 		logger.Debug("Авторизация завершена с настройками токена: AllowText=%t AllowCall=%t", bot.textMessage, bot.voiceCall, userID)
 
 		bot.b.Disconnect()
@@ -291,6 +300,12 @@ func (u *User) AuthenticateWithQRForWeb(userID uint32, stateChan chan<- AuthStat
 		// Удаляем временный бот из памяти
 		u.uBot.Delete(userID)
 		logger.Debug("Временный бот авторизации удален из памяти", userID)
+
+		// После QR-авторизации создаем и запускаем полноценного бота.
+		if err := u.StartUserBot(userID); err != nil {
+			logger.Error("Не удалось запустить бота после авторизации: %v", err, userID)
+			return fmt.Errorf("не удалось запустить бота после авторизации: %w", err)
+		}
 		return nil
 
 	case err := <-errChan:
