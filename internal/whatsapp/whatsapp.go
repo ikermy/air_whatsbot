@@ -550,7 +550,7 @@ func (b *Bot) handleMessage(msg *events.Message) error {
 	}
 
 	// Проверяем дополнительные флаги для определения истории
-	if msg.Info.MessageSource.IsFromMe || msg.Info.IsIncomingBroadcast() {
+	if msg.Info.IsFromMe || msg.Info.IsIncomingBroadcast() {
 		metrics.MessagesIgnored.WithLabelValues(metrics.BotLabel(b.userID), "from_me_or_broadcast").Inc()
 		//logger.Debug("Игнорируем сообщение от %s (IsFromMe/IsIncomingBroadcast)", msg.Info.Sender.String(), w.UserId)
 		return nil
@@ -657,8 +657,8 @@ func (b *Bot) handleMessage(msg *events.Message) error {
 	var realPhone string
 
 	// Сначала пробуем SenderAlt (для некоторых контактов работает)
-	if msg.Info.MessageSource.SenderAlt.User != "" {
-		realPhone = extractRealPhone(msg.Info.MessageSource.SenderAlt.String(), "")
+	if msg.Info.SenderAlt.User != "" {
+		realPhone = extractRealPhone(msg.Info.SenderAlt.String(), "")
 	}
 
 	// Если не получилось, используем основной Sender JID

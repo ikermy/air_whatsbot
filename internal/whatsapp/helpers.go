@@ -28,7 +28,7 @@ type signalMACLogger struct {
 
 func (l signalMACLogger) Errorf(msg string, args ...any) {
 	if isSignalMACError(msg) {
-		l.Logger.Debugf(msg, args...)
+		l.Debugf(msg, args...)
 		return
 	}
 	l.Logger.Errorf(msg, args...)
@@ -36,7 +36,7 @@ func (l signalMACLogger) Errorf(msg string, args ...any) {
 
 func (l signalMACLogger) Warnf(msg string, args ...any) {
 	if isSignalMACError(msg) {
-		l.Logger.Debugf(msg, args...)
+		l.Debugf(msg, args...)
 		return
 	}
 	l.Logger.Warnf(msg, args...)

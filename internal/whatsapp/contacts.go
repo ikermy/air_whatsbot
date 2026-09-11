@@ -266,7 +266,7 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 					groupName = group.Topic
 				} else {
 					// Если и тема пуста, формируем название на основе ID
-					groupName = fmt.Sprintf("%s", group.JID.User)
+					groupName = group.JID.User
 				}
 			}
 
