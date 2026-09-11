@@ -3,7 +3,7 @@ name: Lint and Auto-Fix Code
 on:
   push:
     branches:
-      - main
+      - master
 
 permissions:
   contents: write
@@ -42,7 +42,7 @@ jobs:
           echo "changes=$(git status --porcelain | wc -l)" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request with fixes
-        if: steps:git-check.outputs.changes > 0
+        if: steps.git-check.outputs.changes > 0
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -53,4 +53,4 @@ jobs:
             It applies the commands `go fmt` and `golangci-lint --fix` to bring the code to a unified standard.
           branch: golangci-lint-fixes
           delete-branch: true
-          base: main
+          base: master
