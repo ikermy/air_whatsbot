@@ -58,6 +58,7 @@ func (u *User) AuthWebSocketHandler(h http.ResponseWriter, r *http.Request) {
 				Payload: "Авторизация WhatsApp уже выполняется",
 			})
 			_ = conn.Close()
+			cancelAuth()
 			return
 		}
 	}

@@ -70,6 +70,15 @@ type ORCClient interface {
 	GetUserMasterKey(ctx context.Context, userId uint32) ([32]byte, error)
 }
 
+// Start - ядро является единственным
+// владельцем lifecycle realtime-сессии: оно запускает провайдера, отдаёт
+// каналы аудио/событий через StartCh.Realtime и закрывает сессию по respId.
+// Реализуется *startpoint.Start и прокидывается из app.New.
+type Start interface {
+	StartSession(start *model.StartCh) <-chan error
+	CloseSession(respId uint64)
+}
+
 var StartCh = make(chan model.StartCh, 100) // Канал для запуска горутины слушателя
 
 // ResponderInfo хранит информацию о респонденте (собеседнике)
@@ -99,6 +108,7 @@ type Bot struct {
 	db              DB
 	mod             Model
 	c               *crm.User
+	start           Start // Ядро Start — владелец lifecycle realtime-сессий
 	// Канал для ожидания синхронизации
 	syncComplete chan struct{}
 	// время успешного подключения для игнорирования сообщений из истории
@@ -125,6 +135,7 @@ type User struct {
 	end    Endpoint
 	crm    CRM
 	uBot   sync.Map // key: uint32 (userID), value: *Bot
+	start  Start    // Ядро Start — владелец lifecycle realtime-сессий
 	// Включение операторского режима
 	operatorModeByDialog sync.Map // key: dialogId (uint64), value: bool
 	op                   Operator
@@ -167,6 +178,10 @@ func New(parent context.Context, d DB, m Model, e Endpoint, c CRM, o ORCClient, 
 }
 
 func (u *User) SetOperator(op Operator) { u.op = op }
+
+// SetStart прокидывает ядро Start в User, чтобы боты могли запускать/закрывать
+// realtime-сессии через единственного владельца lifecycle.
+func (u *User) SetStart(s Start) { u.start = s }
 
 // DisableOperatorMode отключает режим оператора и уведомляет AI-модель
 // вызывается из Startpoints при получении команды от оператора
@@ -1092,11 +1107,12 @@ func (b *Bot) initializeUserChannels(senderID uint64, senderName string) error {
 
 	// Отправляем данные в канал запуска
 	startCh := model.StartCh{
-		Ctx:     b.ctx,
-		Model:   usrMod,
-		Chanel:  usrCh,
-		TreadId: dialogId,
-		RespId:  senderID,
+		Ctx:      b.ctx,
+		ChName:   comdom.WhatsApp,
+		Model:    usrMod,
+		Channel:  usrCh,
+		ThreadId: dialogId,
+		RespId:   senderID,
 	}
 
 	// Сначала запущу слушателя каналов
@@ -1709,6 +1725,7 @@ func (u *User) initializeBot(userID uint32, tokenData *JSONDeviceStore, assist *
 		db:              u.db,
 		mod:             u.mod,
 		c:               crmUser,
+		start:           u.start,
 		syncComplete:    syncComplete,
 		parent:          u,
 		offlineMsgSync:  make(chan struct{}), // Канал для синхронизации оффлайн сообщений

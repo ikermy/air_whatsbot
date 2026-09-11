@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/ikermy/air-common/pkg/comdom"
 	"github.com/ikermy/air-common/pkg/mode"
 	"github.com/ikermy/air-common/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
@@ -34,13 +36,10 @@ type callSession struct {
 	cancel       context.CancelFunc
 	call         *meowcaller.Call
 	once         sync.Once
-	respID       uint64
-	realtime     model.RealtimeProvider
+	respID       uint64 // != 0 — realtime-сессия запущена (владелец lifecycle — Start)
 	source       *realtimeAudioSource
 	ready        atomic.Bool
-	events       <-chan model.RealtimeEvent
 	direction    string
-	drain        <-chan struct{}
 	recorder     meowcaller.AudioSink
 	onEvent      CallEventHandler
 	eventHub     *callEventHub
@@ -210,11 +209,9 @@ func (b *Bot) cleanupCall(callID, reason string) {
 			session.eventHub.close()
 		}
 		metrics.WhatsAppCalls.WithLabelValues(metrics.BotLabel(b.userID), session.direction, "ended").Inc()
-		if session.realtime != nil {
-			if session.events != nil {
-				session.realtime.UnsubscribeEvents(session.respID, session.events)
-			}
-			session.realtime.CloseRealtimeSession(session.respID)
+		// Ядро Start — единственный владелец lifecycle realtime-сессии.
+		if b.start != nil && session.respID != 0 {
+			b.start.CloseSession(session.respID)
 		}
 		if session.source != nil {
 			_ = session.source.Close()
@@ -235,7 +232,14 @@ func (b *Bot) stopCalls(reason string) {
 	})
 }
 
+// startRealtimeCall запускает realtime-сессию через ядро Start — единственного
+// владельца её lifecycle. StartSession сам достаёт провайдера из Router и
+// заполняет startCh.Realtime каналами; после старта провайдер тянется вручную
+// только для SendRealtimeAudio (входящее аудио не канализуется ядром).
 func (b *Bot) startRealtimeCall(session *callSession, respID uint64) error {
+	if b.start == nil {
+		return fmt.Errorf("ядро Start не сконфигурировано")
+	}
 	provider, ok := b.getRealtimeProvider()
 	if !ok {
 		return fmt.Errorf("модель пользователя не поддерживает RealtimeProvider")
@@ -250,39 +254,53 @@ func (b *Bot) startRealtimeCall(session *callSession, respID uint64) error {
 			return err
 		}
 	}
-	if err := provider.StartRealtimeSession(b.userID, ch.DialogID, respID); err != nil {
-		// A channel may survive a bot restart while its in-memory RespModel is
-		// gone. Rebuild the channel once and retry the realtime session.
-		logger.Warn("Realtime-модель для respID=%d не запущена, переинициализируем канал: %v", respID, err, b.userID)
-		if initErr := b.initializeUserChannels(respID, strconv.FormatUint(respID, 10)); initErr != nil {
-			return fmt.Errorf("%w; переинициализация канала не удалась: %v", err, initErr)
-		}
-		ch, getErr := b.mod.GetCh(respID)
-		if getErr != nil {
-			return fmt.Errorf("%w; канал после переинициализации не найден: %v", err, getErr)
-		}
-		if retryErr := provider.StartRealtimeSession(b.userID, ch.DialogID, respID); retryErr != nil {
-			return retryErr
-		}
+	// A channel may survive a bot restart while its in-memory RespModel is
+	// gone. GetOrSetRespGPT восстанавливает модель для диалога.
+	usrMod, err := b.mod.GetOrSetRespGPT(*b.assist, ch.DialogID, respID, strconv.FormatUint(respID, 10))
+	if err != nil && !strings.Contains(err.Error(), "получены пустые данные") {
+		return fmt.Errorf("ошибка модели пользователя: %w", err)
 	}
-	audioOut, err := provider.GetRealtimeAudio(respID)
-	if err != nil {
-		provider.CloseRealtimeSession(respID)
-		return err
+	if usrMod == nil {
+		return fmt.Errorf("модель пользователя не инициализирована для respId=%d", respID)
 	}
-	events, err := provider.SubscribeEvents(respID)
-	if err != nil {
-		provider.CloseRealtimeSession(respID)
-		return err
+
+	startCh := &model.StartCh{
+		Ctx:      b.ctx,
+		ChName:   comdom.WhatsApp,
+		Model:    usrMod,
+		Channel:  ch,
+		ThreadId: ch.DialogID,
+		RespId:   respID,
+		// Realtime != nil — запрос realtime-режима; StartSession заполнит
+		// AudioTx/Drain/Events до возврата.
+		Realtime: &model.RealtimeChannels{},
 	}
-	drain, err := provider.GetRealtimeDrain(respID)
-	if err != nil {
-		provider.UnsubscribeEvents(respID, events)
-		provider.CloseRealtimeSession(respID)
-		return err
+	errCh := b.start.StartSession(startCh)
+	if startCh.Realtime == nil || startCh.Realtime.AudioTx == nil {
+		select {
+		case e := <-errCh:
+			if e != nil {
+				return fmt.Errorf("realtime-сессия не запущена: %w", e)
+			}
+		default:
+		}
+		return fmt.Errorf("realtime-сессия не запущена для respId=%d", respID)
 	}
 	source := newRealtimeAudioSource(session.ctx)
-	session.respID, session.realtime, session.source, session.events, session.drain = respID, provider, source, events, drain
+	session.respID, session.source = respID, source
+	// errCh закрывает ядро; вычитываем, иначе писатель заблокируется и ошибки потеряются.
+	go func() {
+		for err := range errCh {
+			if err != nil {
+				logger.Warn("Realtime-сессия respId=%d: %v", respID, err, b.userID)
+			}
+		}
+	}()
+
+	audioOut := startCh.Realtime.AudioTx
+	drain := startCh.Realtime.Drain
+	events := startCh.Realtime.Events
+
 	var realtimeInputPending []byte
 	session.call.Receive(meowcaller.SinkFunc(func(frame []float32) {
 		session.lastActivity.Store(time.Now().UnixNano())

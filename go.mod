@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/ikermy/air-common v1.50.98
+	github.com/ikermy/air-common v1.51.0
 	github.com/ikermy/air-logger/v2 v2.1.4
 	github.com/prometheus/client_golang v1.24.1
 	github.com/purpshell/meowcaller v0.0.0-20260811012811-27a3c6b18657

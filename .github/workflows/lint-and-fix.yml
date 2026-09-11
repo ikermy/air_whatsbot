@@ -1,0 +1,56 @@
+name: Lint and Auto-Fix Code
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  lint-and-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable' # Использует последнюю стабильную версию Go
+          cache: true          # Включает кэширование зависимостей для скорости
+
+      - name: Run Go Format
+        run: |
+          # Автоматически форматирует все файлы .go в проекте
+          go fmt ./...
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          # --fix пытается автоматически исправить базовые ошибки (стиль, импорты)
+          args: --fix --timeout=5m
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          # Проверяем, изменил ли линтер файлы в репозитории
+          git status --porcelain
+          echo "changes=$(git status --porcelain | wc -l)" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request with fixes
+        if: steps:git-check.outputs.changes > 0
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: automatic code formatting and linting"
+          title: "🤖 Linter: Automatic code style fixes"
+          body: |
+            This Pull Request was created automatically by GitHub Actions.
+            It applies the commands `go fmt` and `golangci-lint --fix` to bring the code to a unified standard.
+          branch: golangci-lint-fixes
+          delete-branch: true
+          base: main
