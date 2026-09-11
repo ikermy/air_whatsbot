@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 'stable' # Использует последнюю стабильную версию Go
-          cache: true          # Включает кэширование зависимостей для скорости
+          go-version-file: go.mod # Версия Go из go.mod
+          cache: true             # Включает кэширование зависимостей для скорости
 
       - name: Run Go Format
         run: |
@@ -28,7 +28,10 @@ jobs:
           go fmt ./...
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        # Авто-фиксящий линтер: при нефиксируемых замечаниях не валим job,
+        # а открываем PR с тем, что удалось исправить.
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           # --fix пытается автоматически исправить базовые ошибки (стиль, импорты)
@@ -42,8 +45,8 @@ jobs:
           echo "changes=$(git status --porcelain | wc -l)" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request with fixes
-        if: steps.git-check.outputs.changes > 0
-        uses: peter-evans/create-pull-request@v6
+        if: steps.git-check.outputs.changes != '0'
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: automatic code formatting and linting"

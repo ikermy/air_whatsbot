@@ -143,6 +143,17 @@ jobs:
       - name: Write release version marker
         run: echo "${{ needs.build-and-push.outputs.tag }}" > ver.txt
 
+      - name: Check SSH connectivity
+        env:
+          HOST: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
+        run: |
+          echo "HOST set: $([ -n "$HOST" ] && echo yes || echo no), USERNAME set: $([ -n "$USERNAME" ] && echo yes || echo no)"
+          echo "--- TCP :22 ---"
+          timeout 10 bash -c "cat < /dev/null > /dev/tcp/$HOST/22" && echo "TCP 22 reachable" || echo "TCP 22 NOT reachable"
+          echo "--- SSH banner ---"
+          timeout 15 ssh-keyscan -T 10 "$HOST" || echo "ssh-keyscan failed"
+
       - name: Copy configs to server
         uses: appleboy/scp-action@v0.1.7
         with:
