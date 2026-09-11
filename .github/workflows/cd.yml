@@ -143,6 +143,14 @@ jobs:
       - name: Write release version marker
         run: echo "${{ needs.build-and-push.outputs.tag }}" > ver.txt
 
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
       - name: Check SSH connectivity
         env:
           HOST: ${{ secrets.HOST }}
@@ -153,50 +161,64 @@ jobs:
           timeout 10 bash -c "cat < /dev/null > /dev/tcp/$HOST/22" && echo "TCP 22 reachable" || echo "TCP 22 NOT reachable"
           echo "--- SSH banner ---"
           timeout 15 ssh-keyscan -T 10 "$HOST" || echo "ssh-keyscan failed"
+          echo "--- ssh verbose ---"
+          timeout 25 ssh -vv -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -i ~/.ssh/id_deploy "$USERNAME@$HOST" true || true
 
       - name: Copy configs to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "prod.yml,ver.txt"
-          target: "/bot/marusia/air_whatsbot"
+        env:
+          HOST: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
+        run: |
+          for i in 1 2 3; do
+            if scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ~/.ssh/id_deploy prod.yml ver.txt "$USERNAME@$HOST:/bot/marusia/air_whatsbot/"; then
+              echo "scp OK"
+              exit 0
+            fi
+            echo "scp attempt $i failed"
+            sleep 10
+          done
+          exit 1
 
       - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1.2.0
         env:
+          HOST: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          HOST: ${{ secrets.HOST }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: REGISTRY,IMAGE_NAME,HOST,DB_USER,DB_PASSWORD,SERVICE_KEY
-          script: |
-            set -e
-            cd /bot/marusia/air_whatsbot
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          B64_GH_TOKEN=$(printf '%s' "$GH_TOKEN" | base64 -w0)
+          B64_SERVICE_KEY=$(printf '%s' "$SERVICE_KEY" | base64 -w0)
+          B64_DB_PASSWORD=$(printf '%s' "$DB_PASSWORD" | base64 -w0)
+          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ~/.ssh/id_deploy \
+            "$USERNAME@$HOST" \
+            "B64_GH_TOKEN='$B64_GH_TOKEN' B64_SERVICE_KEY='$B64_SERVICE_KEY' B64_DB_PASSWORD='$B64_DB_PASSWORD' REGISTRY='$REGISTRY' IMAGE_NAME='$IMAGE_NAME' HOST='$HOST' DB_USER='$DB_USER' ACTOR='$ACTOR' bash -s" <<'REMOTE'
+          set -e
+          cd /bot/marusia/air_whatsbot
+          printf '%s' "$B64_GH_TOKEN" | base64 -d | docker login ghcr.io -u "$ACTOR" --password-stdin
 
-            # Create secret file for ConfigService
-            echo "$SERVICE_KEY" > .service_key
-            chmod 600 .service_key
+          # Create secret file for ConfigService
+          printf '%s' "$B64_SERVICE_KEY" | base64 -d > .service_key
+          chmod 600 .service_key
 
-            # 1. Create .env file for Docker Compose
-            echo "DOMAIN=$HOST" > .env
-            echo "DB_USER=$DB_USER" >> .env
-            echo "DB_PASSWORD=$DB_PASSWORD" >> .env
-            chmod 600 .env
+          # 1. Create .env file for Docker Compose
+          echo "DOMAIN=$HOST" > .env
+          echo "DB_USER=$DB_USER" >> .env
+          printf 'DB_PASSWORD=' >> .env
+          printf '%s' "$B64_DB_PASSWORD" | base64 -d >> .env
+          echo >> .env
+          chmod 600 .env
 
-            # 2. Pull from GHCR and tag locally with the name used by prod.yml
-            FULL_IMAGE_NAME="$REGISTRY/$IMAGE_NAME:prod"
-            docker pull $FULL_IMAGE_NAME
-            docker tag $FULL_IMAGE_NAME whatsbot:prod
+          # 2. Pull from GHCR and tag locally with the name used by prod.yml
+          FULL_IMAGE_NAME="$REGISTRY/$IMAGE_NAME:prod"
+          docker pull "$FULL_IMAGE_NAME"
+          docker tag "$FULL_IMAGE_NAME" whatsbot:prod
 
-            # 3. Restart application
-            docker compose -f prod.yml up -d --force-recreate --no-build
-            docker image prune -f
+          # 3. Restart application
+          docker compose -f prod.yml up -d --force-recreate --no-build
+          docker image prune -f
+          REMOTE
