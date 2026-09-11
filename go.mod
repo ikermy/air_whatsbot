@@ -3,7 +3,7 @@ module air_whatsbot
 go 1.26.0
 
 require (
-	github.com/go-sql-driver/mysql v1.10.0
+	github.com/go-sql-driver/mysql v1.10.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/ikermy/air-common v1.51.0
 	github.com/ikermy/air-logger/v2 v2.1.4
