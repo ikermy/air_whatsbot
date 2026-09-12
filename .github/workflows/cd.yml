@@ -193,10 +193,11 @@ jobs:
         run: |
           B64_GH_TOKEN=$(printf '%s' "$GH_TOKEN" | base64 -w0)
           B64_SERVICE_KEY=$(printf '%s' "$SERVICE_KEY" | base64 -w0)
-          B64_DB_PASSWORD=$(printf '%s' "$DB_PASSWORD" | base64 -w0)
+          B64_DB_USER=$(printf '%s' "$(printf '%s' "$DB_USER" | tr -d '\r\n')" | base64 -w0)
+          B64_DB_PASSWORD=$(printf '%s' "$(printf '%s' "$DB_PASSWORD" | tr -d '\r\n')" | base64 -w0)
           ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i ~/.ssh/id_deploy \
             "$USERNAME@$HOST" \
-            "B64_GH_TOKEN='$B64_GH_TOKEN' B64_SERVICE_KEY='$B64_SERVICE_KEY' B64_DB_PASSWORD='$B64_DB_PASSWORD' REGISTRY='$REGISTRY' IMAGE_NAME='$IMAGE_NAME' HOST='$HOST' DB_USER='$DB_USER' ACTOR='$ACTOR' bash -s" <<'REMOTE'
+            "B64_GH_TOKEN='$B64_GH_TOKEN' B64_SERVICE_KEY='$B64_SERVICE_KEY' B64_DB_USER='$B64_DB_USER' B64_DB_PASSWORD='$B64_DB_PASSWORD' REGISTRY='$REGISTRY' IMAGE_NAME='$IMAGE_NAME' HOST='$HOST' ACTOR='$ACTOR' bash -s" <<'REMOTE'
           set -e
           cd /bot/marusia/air_whatsbot
           printf '%s' "$B64_GH_TOKEN" | base64 -d | docker login ghcr.io -u "$ACTOR" --password-stdin
@@ -206,11 +207,13 @@ jobs:
           chmod 600 .service_key
 
           # 1. Create .env file for Docker Compose
-          echo "DOMAIN=$HOST" > .env
-          echo "DB_USER=$DB_USER" >> .env
+          printf 'DOMAIN=%s\n' "$(printf '%s' "$HOST" | tr -d '\r\n')" > .env
+          printf 'DB_USER=' >> .env
+          printf '%s' "$B64_DB_USER" | base64 -d >> .env
+          printf '\n' >> .env
           printf 'DB_PASSWORD=' >> .env
           printf '%s' "$B64_DB_PASSWORD" | base64 -d >> .env
-          echo >> .env
+          printf '\n' >> .env
           chmod 600 .env
 
           # 2. Pull from GHCR and tag locally with the name used by prod.yml
