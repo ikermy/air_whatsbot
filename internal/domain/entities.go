@@ -24,3 +24,10 @@ type WaUserBotData struct {
 	WaUserBotEnabled bool                // Флаг включения бота
 	Ignore           bool                // Игнорировать сообщения до ответа ассистента
 }
+
+// Redis — параметры подключения (заполняются в main.go из env).
+type Redis struct {
+	RedisAddr     string // REDIS_ADDR (default: "" — Redis отключён)
+	RedisPassword string // REDIS_PASSWORD
+	RedisDB       int    // REDIS_DB (default: 0)
+}

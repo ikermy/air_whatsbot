@@ -26,6 +26,8 @@ import (
 
 type DB interface {
 	HandlerClose()
+	CloseDoneCh()
+	GetExitCh() <-chan struct{}
 }
 
 type Mod interface {
@@ -50,6 +52,7 @@ type CRM interface {
 type Whats interface {
 	StartBots() error
 	StopBot()
+	StartCh() <-chan model.StartCh
 }
 
 type App struct {
@@ -65,7 +68,7 @@ type App struct {
 	CallRPC *internalrpc.Server
 }
 
-func New(parent context.Context) *App {
+func New(parent context.Context, redisCfg domain.Redis) *App {
 	// Локальный дочерний контекст для уровня app
 	ctx, cancel := context.WithCancel(parent)
 	metrics.Register()
@@ -99,11 +102,11 @@ func New(parent context.Context) *App {
 	})
 
 	var redisClient redis.UniversalClient
-	if domain.RedisAddr != "" {
+	if redisCfg.RedisAddr != "" {
 		redisClient = redis.NewClient(&redis.Options{
-			Addr:     domain.RedisAddr,
-			Password: domain.RedisPassword,
-			DB:       domain.RedisDB,
+			Addr:     redisCfg.RedisAddr,
+			Password: redisCfg.RedisPassword,
+			DB:       redisCfg.RedisDB,
 		})
 
 		if err := redisClient.Ping(ctx).Err(); err != nil {
@@ -137,6 +140,11 @@ func New(parent context.Context) *App {
 		Whats:   w,
 		CallRPC: callRPC,
 	}
+}
+
+// ExitCh возвращает канал, который закрывается при завершении работы приложения.
+func (a *App) ExitCh() <-chan struct{} {
+	return a.DB.GetExitCh()
 }
 
 func (a *App) Run() {
@@ -176,7 +184,7 @@ func (a *App) Run() {
 		go func() {
 			ticker := time.NewTicker(5 * time.Second)
 			<-ticker.C
-			close(domain.UsersDB)
+			a.DB.CloseDoneCh() // Закрываем канал DoneCh принудительно, больше никто не работает с БД
 		}()
 
 		logger.Info("App: получен сигнал завершения, начинаю shutdown")
@@ -193,12 +201,12 @@ func (a *App) Run() {
 		// ждём всех producers и закрываем канал
 		bus.WaitAndClose()
 		// Отправляем сигнал о завершении работы с БД
-		close(domain.UsersDB)
+		a.DB.CloseDoneCh()
 	}()
 }
 
 func (a *App) Starter() {
-	for start := range whatsapp.StartCh {
+	for start := range a.Whats.StartCh() {
 		go func(startData model.StartCh) {
 			// StartSession заполняет startData.Realtime, поэтому нужен указатель
 			// на копию — у каждой горутины она своя.

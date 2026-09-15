@@ -1,4 +1,4 @@
-package whatsapp
+package responder
 
 import (
 	"context"
@@ -16,24 +16,26 @@ const (
 	knownResponderServiceID = 3 // WhatsAppUserBot
 )
 
-type CacheMethods interface {
+// Cache хранит метки уже известных респондентов (первое взаимодействие).
+type Cache interface {
 	Has(ctx context.Context, userID uint32, senderID int64) (bool, error)
 	Set(ctx context.Context, userID uint32, senderID int64) error
 	LoadUser(ctx context.Context, userID uint32) ([]int64, error)
 }
 
-type cache struct {
+type redisCache struct {
 	client redis.UniversalClient
 }
 
-func newRedisKnownResponderCache(client redis.UniversalClient) CacheMethods {
+// NewRedisCache создаёт Redis-кеш известных респондентов или nil, если Redis не настроен.
+func NewRedisCache(client redis.UniversalClient) Cache {
 	if client == nil {
 		return nil
 	}
-	return &cache{client: client}
+	return &redisCache{client: client}
 }
 
-func (c *cache) Has(ctx context.Context, userID uint32, senderID int64) (bool, error) {
+func (c *redisCache) Has(ctx context.Context, userID uint32, senderID int64) (bool, error) {
 	result, err := c.client.Exists(ctx, knownResponderKey(userID, senderID)).Result()
 	if err != nil {
 		return false, err
@@ -41,11 +43,11 @@ func (c *cache) Has(ctx context.Context, userID uint32, senderID int64) (bool, e
 	return result > 0, nil
 }
 
-func (c *cache) Set(ctx context.Context, userID uint32, senderID int64) error {
+func (c *redisCache) Set(ctx context.Context, userID uint32, senderID int64) error {
 	return c.client.Set(ctx, knownResponderKey(userID, senderID), "1", knownResponderTTL).Err()
 }
 
-func (c *cache) LoadUser(ctx context.Context, userID uint32) ([]int64, error) {
+func (c *redisCache) LoadUser(ctx context.Context, userID uint32) ([]int64, error) {
 	pattern := fmt.Sprintf("%s*", knownResponderUserPrefix(userID))
 	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
 

@@ -58,10 +58,6 @@ func (nb *NullBytes) Scan(value any) error {
 }
 
 func (r *Implementation) UpdateWhatsBotData(ctx context.Context, userId uint32, mk [32]byte, data string, enabled bool) error {
-	if userId == 0 {
-		return fmt.Errorf("получен некорректный userId: %d", userId)
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, mode.GetSQLTimeToCancel())
 	defer cancel()
 
@@ -203,10 +199,6 @@ func (r *Implementation) GetWaUserBotUsers(ctx context.Context) ([]domain.WaUser
 }
 
 func (r *Implementation) GetWaUser(ctx context.Context, userId uint32) (*domain.WaUserBotData, error) {
-	if userId == 0 {
-		return nil, fmt.Errorf("получен некорректный userId: %d", userId)
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, mode.GetSQLTimeToCancel())
 	defer cancel()
 

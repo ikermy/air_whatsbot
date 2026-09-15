@@ -1,15 +1,37 @@
-package whatsapp
+package calls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/ikermy/air-common/pkg/model"
 )
+
+// ErrCallNotFound возвращается при подписке на неизвестный звонок.
+var ErrCallNotFound = errors.New("call not found")
 
 const callEventReplayLimit = 128
 
-type callEventHub struct {
+// CallEvent описывает событие жизненного цикла/медиа WhatsApp-звонка.
+type CallEvent struct {
+	CallID     string
+	Type       string
+	Delta      string
+	Text       string
+	ResponseID string
+	Err        error
+	Sequence   uint64
+	Timestamp  time.Time
+	Data       []byte
+	Files      []model.File
+}
+
+type CallEventHandler func(CallEvent)
+
+type eventHub struct {
 	mu          sync.Mutex
 	sequence    uint64
 	replay      []CallEvent
@@ -17,11 +39,11 @@ type callEventHub struct {
 	closed      bool
 }
 
-func newCallEventHub() *callEventHub {
-	return &callEventHub{subscribers: make(map[chan CallEvent]struct{})}
+func newEventHub() *eventHub {
+	return &eventHub{subscribers: make(map[chan CallEvent]struct{})}
 }
 
-func (h *callEventHub) publish(event CallEvent) {
+func (h *eventHub) publish(event CallEvent) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {
@@ -42,7 +64,7 @@ func (h *callEventHub) publish(event CallEvent) {
 	}
 }
 
-func (h *callEventHub) subscribe(ctx context.Context, after uint64) (<-chan CallEvent, error) {
+func (h *eventHub) subscribe(ctx context.Context, after uint64) (<-chan CallEvent, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {
@@ -62,7 +84,7 @@ func (h *callEventHub) subscribe(ctx context.Context, after uint64) (<-chan Call
 	return ch, nil
 }
 
-func (h *callEventHub) unsubscribe(ch chan CallEvent) {
+func (h *eventHub) unsubscribe(ch chan CallEvent) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if _, ok := h.subscribers[ch]; ok {
@@ -71,7 +93,7 @@ func (h *callEventHub) unsubscribe(ch chan CallEvent) {
 	}
 }
 
-func (h *callEventHub) close() {
+func (h *eventHub) close() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {

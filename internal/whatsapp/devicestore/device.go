@@ -1,4 +1,4 @@
-package whatsapp
+package devicestore
 
 import (
 	"context"
@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ikermy/air-common/pkg/com"
-	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"go.mau.fi/whatsmeow/proto/waAdv"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -66,56 +64,6 @@ type DeviceData struct {
 	Uids           string                         `json:"Uids"`
 	AllowText      bool                           `json:"AllowText"`
 	AllowCall      bool                           `json:"AllowCall"`
-}
-
-// Получает MasterKey пользователя от Landing
-func (u *User) userMasterKey(userID uint32) [32]byte {
-	var (
-		userMasterKey [32]byte
-		err           error
-	)
-
-	if userMasterKey, err = u.getMasterKey(userID); err == nil {
-		return userMasterKey
-	}
-
-	logger.Warn("Не удалось получить мастер-ключ пользователя: %v", err, userID)
-	return [32]byte{}
-}
-
-// Проверяет подписку пользователя
-func (u *User) checkUserSubscription(userId uint32) error {
-	err := com.CheckUserSubscription(u.db, userId)
-	if err != nil {
-		var commonErr *com.SubscriptionError
-		ok := errors.As(err, &commonErr)
-		if ok {
-			// Форматируем сообщение, включив код ошибки
-			errorCode := fmt.Sprintf("%d", commonErr.Code)
-			msg := com.CarpCh{
-				Event:      "subscription",
-				UserName:   "",
-				AssistName: "",
-				Target:     errorCode,
-				UserID:     userId,
-			}
-			err := u.end.SendNotification(msg)
-			if err != nil {
-				return fmt.Errorf("ошибка отправки уведомления о подписке: %v", err)
-			}
-
-			// Выключаю все каналы пользователя
-			if dbErr := u.db.DisableAllUserChannel(userId); dbErr != nil {
-				return fmt.Errorf("ошибка при выключении каналов: %v", dbErr)
-			}
-
-			logger.Debug("Все каналы пользователя %d выключены из-за отсутствия подписки", userId)
-		} else {
-			return fmt.Errorf("неизвестная ошибка проверки подписки: %v", err)
-		}
-		return fmt.Errorf("ошибка проверки подписки: %v", err)
-	}
-	return nil
 }
 
 func initContainer(ctx context.Context, l waLog.Logger) (*sqlstore.Container, error) {
@@ -184,7 +132,6 @@ func fillAccount(device *store.Device, devData DeviceData) error {
 		}
 	}
 	if devData.Account != nil {
-		// обработка ключей и подписей (вынести в отдельные функции)
 		device.Account.Details = devData.Account.Details
 		device.Account.AccountSignatureKey = normalizeKey(devData.Account.AccountSignatureKey, 32)
 		device.Account.AccountSignature = normalizeSignature(devData.Account.AccountSignature, 64)
@@ -198,7 +145,6 @@ func normalizeKey(data []byte, targetLen int) []byte {
 	if len(data) == 0 {
 		return randomBytes(targetLen)
 	}
-	// пробуем base64
 	raw, err := base64.StdEncoding.DecodeString(string(data))
 	if err == nil {
 		data = raw
@@ -209,7 +155,6 @@ func normalizeKey(data []byte, targetLen int) []byte {
 	if len(data) > targetLen {
 		return data[:targetLen]
 	}
-	// если меньше — хэшируем
 	hash := sha256.Sum256(data)
 	return hash[:targetLen]
 }
@@ -219,7 +164,6 @@ func normalizeSignature(data []byte, targetLen int) []byte {
 	if len(data) == 0 {
 		return randomBytes(targetLen)
 	}
-	// пробуем base64
 	raw, err := base64.StdEncoding.DecodeString(string(data))
 	if err == nil {
 		data = raw
@@ -230,7 +174,6 @@ func normalizeSignature(data []byte, targetLen int) []byte {
 	if len(data) > targetLen {
 		return data[:targetLen]
 	}
-	// если меньше — используем два хэша подряд
 	hash1 := sha256.Sum256(data)
 	hash2 := sha256.Sum256(append(data, hash1[:]...))
 	return append(hash1[:], hash2[:targetLen-len(hash1)]...)
@@ -255,90 +198,5 @@ func finalizeAccount(device *store.Device) {
 	}
 	if len(device.Account.DeviceSignature) != 64 {
 		device.Account.DeviceSignature = randomBytes(64)
-	}
-}
-
-func (b *Bot) sendFirstContactMessage(senderID uint64, senderName string) {
-	if cachedResponder, ok := b.responders.Load(senderID); ok {
-		if responderInfo, ok := cachedResponder.(*ResponderInfo); ok && responderInfo != nil && responderInfo.Known {
-			if b.redisCache != nil {
-				if err := b.redisCache.Set(b.ctx, b.userID, int64(senderID)); err != nil {
-					logger.Warn("Redis: ошибка продления knownResponder для senderID=%d: %v", senderID, err, b.userID)
-				}
-			}
-			return
-		}
-	}
-
-	// Ищу пользователя в кеше редис
-	isFirstInteraction := true
-	if b.redisCache != nil {
-		exists, err := b.redisCache.Has(b.ctx, b.userID, int64(senderID))
-		if err != nil {
-			logger.Warn("Redis: ошибка проверки knownResponder для senderID=%d: %v", senderID, err, b.userID)
-		}
-		logger.Debug("Redis: проверка knownResponder для senderID=%d, exists=%v", senderID, exists, b.userID)
-		isFirstInteraction = !exists
-	}
-
-	// Отправляем уведомление о начале диалога, если требуется
-	if isFirstInteraction && b.assist.Events.Start {
-		notifyMsg := com.CarpCh{
-			Event:      "start",
-			UserName:   senderName,
-			AssistName: b.assist.AssistName,
-			Target:     "",
-			UserID:     b.userID,
-		}
-		err := b.end.SendNotification(notifyMsg)
-		if err != nil {
-			logger.Error("Ошибка отправки уведомления о первом взаимодействии: %v", err, b.userID)
-		}
-	}
-
-	// Сохраняю пользователя в редис после обработки
-	if b.redisCache != nil {
-		err := b.redisCache.Set(b.ctx, b.userID, int64(senderID))
-		if err != nil {
-			logger.Warn("Redis: ошибка сохранения knownResponder для senderID=%d: %v", senderID, err, b.userID)
-		}
-	}
-
-	responderInfo, ok := b.responders.Load(senderID)
-	if !ok {
-		b.responders.Store(senderID, &ResponderInfo{Known: true})
-		return
-	}
-
-	info, ok := responderInfo.(*ResponderInfo)
-	if !ok || info == nil {
-		b.responders.Store(senderID, &ResponderInfo{Known: true})
-		return
-	}
-
-	info.Known = true
-	b.responders.Store(senderID, info)
-}
-
-func (b *Bot) preloadFirstInteraction() {
-	if b.redisCache == nil {
-		return
-	}
-
-	senderIDs, err := b.redisCache.LoadUser(b.ctx, b.userID)
-	if err != nil {
-		logger.Warn("Redis: не удалось прогреть knownResponder: %v", err, b.userID)
-		return
-	}
-
-	for _, senderID := range senderIDs {
-		info := &ResponderInfo{
-			Known: true,
-		}
-		b.responders.Store(senderID, info)
-	}
-
-	if len(senderIDs) > 0 {
-		logger.Debug("Redis: прогрето knownResponder=%d", len(senderIDs), b.userID)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"air_whatsbot/internal/repository"
 	repoMysql "air_whatsbot/internal/repository/mysql"
 	"context"
+	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/ikermy/air-common/pkg/comdb"
@@ -14,6 +15,10 @@ import (
 type DB struct {
 	*comdb.DB
 	repo repository.Repository
+
+	done   sync.Once     // На всякий случай однократное закрытие канала
+	DoneCh chan struct{} // Канал уведомления о завершении операций пользователями ДБ
+	Exit   chan struct{} // Канал завершения работы приложения
 }
 
 // New создаёт подключение к БД и инициализирует репозитории
@@ -26,9 +31,12 @@ func New(parent context.Context) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &DB{
-		DB:   base,
-		repo: repo,
+		DB:     base,
+		repo:   repo,
+		DoneCh: make(chan struct{}),
+		Exit:   make(chan struct{}),
 	}, nil
 }
 
@@ -39,15 +47,25 @@ func (d *DB) HandlerClose() {
 		logger.Info("DB: контекст отменен, ожидаю завершения всех операций...")
 
 		// Ожидаем сигнал о завершении от компонентов работающих с ДБ
-		<-domain.UsersDB
+		<-d.DoneCh
 		logger.Info("DB: все модули работающие с БД завершили работу, продолжаю остановку...")
 
 		if err := d.Close(); err != nil {
 			logger.Error("DB: ошибка при закрытии: %v", err)
 		}
 
-		close(domain.Exit)
+		close(d.Exit)
 	}()
+}
+
+func (d *DB) CloseDoneCh() {
+	d.done.Do(func() {
+		close(d.DoneCh)
+	})
+}
+
+func (d *DB) GetExitCh() <-chan struct{} {
+	return d.Exit
 }
 
 // UpdateWhatsBotData Обновляет данные канала после фактической авторизации на сервере

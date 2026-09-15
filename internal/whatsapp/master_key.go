@@ -25,7 +25,7 @@ func (u *User) getMasterKey(userID uint32) ([32]byte, error) {
 	u.masterKeyMu.Unlock()
 
 	if u.rpc == nil {
-		return [32]byte{}, fmt.Errorf("пользователь %d: ORC клиент не инициализирован", userID)
+		return [32]byte{}, fmt.Errorf("пользователь %d: RPC клиент не инициализирован", userID)
 	}
 	key, err := u.rpc.GetUserMasterKey(u.ctx, userID)
 	if err != nil {
@@ -45,7 +45,7 @@ func (u *User) invalidateMasterKey(userID uint32) {
 
 func (u *User) decryptSessionData(userId uint32, raw string) (string, error) {
 	if u.rpc == nil {
-		return "", fmt.Errorf("пользователь %d: ORC клиент не инициализирован", userId)
+		return "", fmt.Errorf("пользователь %d: RPC клиент не инициализирован", userId)
 	}
 
 	mk, err := u.getMasterKey(userId)

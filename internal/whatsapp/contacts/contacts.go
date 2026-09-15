@@ -1,4 +1,4 @@
-package whatsapp
+package contacts
 
 import (
 	"context"
@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/ikermy/air-logger/v2/pkg/logger"
+	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types"
 )
 
-// GetUserContactsStreaming отправляет контакты и группы пользователя через канал в потоковом режиме
-func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) error {
+// Stream отправляет контакты и группы пользователя через канал в потоковом режиме.
+func Stream(ctx context.Context, client *whatsmeow.Client, userID uint32, dataChan chan<- any) error {
 	// Структуры для разных типов контактов, соответствующие формату AiR_TgUserBot
 	// ContactInfo содержит базовую информацию о контакте (пользователе или боте).
 	type ContactInfo struct {
@@ -44,24 +45,14 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 		Username string `json:"username,omitempty"`
 	}
 
-	// Получаем бота по userId
-	value, exists := u.uBot.Load(userId)
-	if !exists {
-		return fmt.Errorf("WhatsApp: пользователь %d: бот не найден", userId)
-	}
-	bot := value.(*Bot)
-	if bot == nil {
-		return fmt.Errorf("WhatsApp: пользователь %d: бот не инициализирован", userId)
-	}
-
 	// Проверяем, инициализирован ли клиент
-	if bot.b == nil {
-		return fmt.Errorf("WhatsApp: пользователь %d: клиент не инициализирован", userId)
+	if client == nil {
+		return fmt.Errorf("WhatsApp: пользователь %d: клиент не инициализирован", userID)
 	}
 
 	// Проверка авторизации
-	if !bot.b.IsLoggedIn() {
-		return fmt.Errorf("бот для пользователя %d не авторизован", userId)
+	if !client.IsLoggedIn() {
+		return fmt.Errorf("бот для пользователя %d не авторизован", userID)
 	}
 
 	// Отправляем статус начала процесса
@@ -77,7 +68,7 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 	var wg sync.WaitGroup
 	var contactsErr, groupsErr error
 
-	ctx, cancel := context.WithTimeout(u.ctx, 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	// Получаем контакты из store
@@ -85,9 +76,9 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 	go func() {
 		defer wg.Done()
 
-		store := bot.b.Store
+		store := client.Store
 		if store == nil {
-			logger.Error("'GetUserContactsStreaming' Хранилище контактов недоступно", userId)
+			logger.Error("'GetUserContactsStreaming' Хранилище контактов недоступно", userID)
 			contactsErr = errors.New("хранилище контактов недоступно")
 			return
 		}
@@ -95,7 +86,7 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 		// Получаем контакты через GetAllContacts
 		allContacts, errGetContacts := store.Contacts.GetAllContacts(ctx)
 		if errGetContacts != nil {
-			logger.Error("'GetUserContactsStreaming' Ошибка получения контактов: %v", errGetContacts, userId)
+			logger.Error("'GetUserContactsStreaming' Ошибка получения контактов: %v", errGetContacts, userID)
 			contactsErr = fmt.Errorf("ошибка получения контактов: %w", errGetContacts)
 			return
 		}
@@ -187,17 +178,17 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 			"stage":  "groups",
 		}
 
-		joinedGroups, errGetGroups := bot.b.GetJoinedGroups(ctx)
+		joinedGroups, errGetGroups := client.GetJoinedGroups(ctx)
 		if errGetGroups != nil {
 			groupsErr = fmt.Errorf("ошибка получения групп: %w", errGetGroups)
-			logger.Warn("Ошибка получения групп: %v", errGetGroups, userId)
+			logger.Warn("Ошибка получения групп: %v", errGetGroups, userID)
 
-			if bot.b.Store != nil {
+			if client.Store != nil {
 				// Создаем список JID групп, с которыми общался пользователь
 				var groupJIDs []types.JID
 
 				// Смотрим, есть ли контакты с серверами g.us
-				storeContacts, _ := bot.b.Store.Contacts.GetAllContacts(ctx)
+				storeContacts, _ := client.Store.Contacts.GetAllContacts(ctx)
 				for jid := range storeContacts {
 					if strings.HasSuffix(jid.Server, "g.us") {
 						groupJIDs = append(groupJIDs, jid)
@@ -304,7 +295,7 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 	hasCriticalErrors := false
 
 	if contactsErr != nil && len(humans) == 0 {
-		logger.Error("Ошибка получения контактов: %v", contactsErr, userId)
+		logger.Error("Ошибка получения контактов: %v", contactsErr, userID)
 		// Если это критическая ошибка подключения и нет групп, считаем это критической ошибкой
 		if len(whatsappGroups) == 0 {
 			// Проверяем, является ли ошибка критической (websocket not connected, клиент не инициализирован и т.д.)
@@ -323,7 +314,7 @@ func (u *User) GetUserContactsStreaming(userId uint32, dataChan chan<- any) erro
 	}
 
 	if groupsErr != nil && len(whatsappGroups) == 0 {
-		logger.Error("Ошибка получения групп: %v", groupsErr, userId)
+		logger.Error("Ошибка получения групп: %v", groupsErr, userID)
 		// Проверяем, является ли ошибка критической
 		errorStr := groupsErr.Error()
 		if strings.Contains(errorStr, "websocket not connected") ||
