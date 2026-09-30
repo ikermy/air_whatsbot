@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/ikermy/air-common/pkg/model"
+	"github.com/polymorfa/hypermeow"
 	"github.com/purpshell/meowcaller"
-	"go.mau.fi/whatsmeow"
 )
 
 type stubHost struct{}

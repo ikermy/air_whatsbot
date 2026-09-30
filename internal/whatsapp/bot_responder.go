@@ -6,7 +6,7 @@ import (
 
 	"github.com/ikermy/air-common/pkg/com"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	"go.mau.fi/whatsmeow/types"
+	"github.com/polymorfa/hypermeow/types"
 )
 
 // restoreResponderFields восстанавливает JID и RealPhone у записи респондента,

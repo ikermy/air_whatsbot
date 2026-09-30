@@ -10,12 +10,12 @@ import (
 	"fmt"
 	"strings"
 
-	"go.mau.fi/whatsmeow/proto/waAdv"
-	"go.mau.fi/whatsmeow/store"
-	"go.mau.fi/whatsmeow/store/sqlstore"
-	"go.mau.fi/whatsmeow/types"
-	"go.mau.fi/whatsmeow/util/keys"
-	waLog "go.mau.fi/whatsmeow/util/log"
+	"github.com/polymorfa/hypermeow/proto/waAdv"
+	"github.com/polymorfa/hypermeow/store"
+	"github.com/polymorfa/hypermeow/store/sqlstore"
+	"github.com/polymorfa/hypermeow/types"
+	"github.com/polymorfa/hypermeow/util/keys"
+	waLog "github.com/polymorfa/hypermeow/util/log"
 )
 
 // signalMACLogger переводит ожидаемые ошибки расшифровки старых Signal-сообщений

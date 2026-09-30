@@ -13,7 +13,7 @@ import (
 	"github.com/ikermy/air-common/pkg/comdom"
 	"github.com/ikermy/air-common/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	"go.mau.fi/whatsmeow/types"
+	"github.com/polymorfa/hypermeow/types"
 	_ "modernc.org/sqlite"
 )
 

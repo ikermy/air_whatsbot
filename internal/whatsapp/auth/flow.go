@@ -9,7 +9,7 @@ import (
 	"air_whatsbot/internal/whatsapp/devicestore"
 
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	"go.mau.fi/whatsmeow"
+	"github.com/polymorfa/hypermeow"
 )
 
 // Bot — минимальный порт авторизуемого бота.

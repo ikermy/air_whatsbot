@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/types"
+	"github.com/polymorfa/hypermeow"
+	"github.com/polymorfa/hypermeow/types"
 )
 
 // Stream отправляет контакты и группы пользователя через канал в потоковом режиме.

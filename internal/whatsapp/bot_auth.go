@@ -6,9 +6,9 @@ import (
 	"air_whatsbot/internal/whatsapp/devicestore"
 
 	"github.com/ikermy/air-logger/v2/pkg/logger"
+	"github.com/polymorfa/hypermeow"
 	"github.com/purpshell/meowcaller"
 	"github.com/rs/zerolog"
-	"go.mau.fi/whatsmeow"
 )
 
 // Device возвращает хранилище устройства бота.

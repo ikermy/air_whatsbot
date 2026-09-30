@@ -8,8 +8,8 @@ import (
 	"air_whatsbot/internal/whatsapp/calls"
 
 	"github.com/ikermy/air-common/pkg/model"
+	"github.com/polymorfa/hypermeow"
 	"github.com/purpshell/meowcaller"
-	"go.mau.fi/whatsmeow"
 )
 
 // Публичные типы звонков реэкспортируются для delivery/rpc.

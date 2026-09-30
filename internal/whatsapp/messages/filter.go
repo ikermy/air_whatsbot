@@ -7,7 +7,7 @@ import (
 
 	"air_whatsbot/internal/metrics"
 
-	"go.mau.fi/whatsmeow/types/events"
+	"github.com/polymorfa/hypermeow/types/events"
 )
 
 // ShouldIgnoreMessage centralizes the pre-checks that classify incoming WhatsApp messages as noise/history.

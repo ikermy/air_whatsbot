@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	"go.mau.fi/whatsmeow/store"
-	"go.mau.fi/whatsmeow/store/sqlstore"
-	waLog "go.mau.fi/whatsmeow/util/log"
+	"github.com/polymorfa/hypermeow/store"
+	"github.com/polymorfa/hypermeow/store/sqlstore"
+	waLog "github.com/polymorfa/hypermeow/util/log"
 	_ "modernc.org/sqlite"
 )
 

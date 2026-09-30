@@ -10,7 +10,7 @@ import (
 
 	"github.com/ikermy/air-common/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	waLog "go.mau.fi/whatsmeow/util/log"
+	waLog "github.com/polymorfa/hypermeow/util/log"
 )
 
 // User реализует auth.Host.

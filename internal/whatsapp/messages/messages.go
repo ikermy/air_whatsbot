@@ -8,8 +8,8 @@ import (
 
 	"github.com/ikermy/air-common/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/types/events"
+	"github.com/polymorfa/hypermeow"
+	"github.com/polymorfa/hypermeow/types/events"
 )
 
 // MessageContent stores the incoming content to be processed by the bot.

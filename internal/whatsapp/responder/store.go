@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"go.mau.fi/whatsmeow/types"
+	"github.com/polymorfa/hypermeow/types"
 )
 
 // Info хранит информацию о респонденте (собеседнике).

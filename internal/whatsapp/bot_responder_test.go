@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	responder "air_whatsbot/internal/whatsapp/responder"
-	"go.mau.fi/whatsmeow/types"
+	"github.com/polymorfa/hypermeow/types"
 )
 
 func TestRestoreResponderFields(t *testing.T) {
