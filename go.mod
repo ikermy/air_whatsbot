@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/ikermy/air-common v1.60.1
 	github.com/ikermy/air-logger/v2 v2.1.4
-	github.com/polymorfa/hypermeow v0.0.0-20260906031440-90f9e4ec2c88
+	github.com/polymorfa/hypermeow v0.0.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/purpshell/meowcaller v0.0.0-20260906234207-c48c3e2a243c
 	github.com/redis/go-redis/v9 v9.22.0

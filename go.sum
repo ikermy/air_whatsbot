@@ -73,8 +73,8 @@ github.com/pion/sctp v1.12.0/go.mod h1:6k1zrpkrxSwbisitn/AlzDQaa15DR49MFsrMochG/
 github.com/pion/transport/v5 v5.1.1 h1:Sauq8YJqRopgRfIgnpfKpdpKG14g0N4jWlRgpWsEfN8=
 github.com/pion/transport/v5 v5.1.1/go.mod h1:Qxw6fCEjFWQkRDZOhS4Vf+neJBcihauvA3uyEa1J1F0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/polymorfa/hypermeow v0.0.0-20260906031440-90f9e4ec2c88 h1:HuHIp7gS/ZUrwSbWfD0ddchti9wQn4teCTY5s/1stpU=
-github.com/polymorfa/hypermeow v0.0.0-20260906031440-90f9e4ec2c88/go.mod h1:PiCnzHA8H+kDlvW7XLoigDWRGRmjfZweN5WH2qiFx+s=
+github.com/polymorfa/hypermeow v0.0.0 h1:KM0JVoiX3O5lg4bF2YYWF4MG8IGy1WlLw6gt3sLPYJc=
+github.com/polymorfa/hypermeow v0.0.0/go.mod h1:PiCnzHA8H+kDlvW7XLoigDWRGRmjfZweN5WH2qiFx+s=
 github.com/polymorfa/libsignal-protocol-go v0.2.3-0.20260806162910-a2adef2e8a11 h1:ZeZ6sUkmZY+v6ULce+O7cuuzUmvu9d3t5sY2CTrJ2AQ=
 github.com/polymorfa/libsignal-protocol-go v0.2.3-0.20260806162910-a2adef2e8a11/go.mod h1:B5KZPsgswdf1eCvC+PZ7z45g5OECgqy6Zb0o7I5CcNQ=
 github.com/prometheus/client_golang v1.24.1 h1:JnJkREXzWxUdCuPFpIWZiPispT9xVV59uiuyR2bPlnU=
