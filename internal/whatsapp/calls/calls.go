@@ -11,9 +11,9 @@ import (
 
 	"air_whatsbot/internal/metrics"
 
-	"github.com/ikermy/air-common/pkg/comdom"
-	"github.com/ikermy/air-common/pkg/mode"
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/comdom"
+	"github.com/ikermy/air-common/v2/pkg/mode"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/polymorfa/hypermeow"
 	"github.com/polymorfa/hypermeow/types"
@@ -30,7 +30,7 @@ const (
 // к клиентам, модели и lifecycle realtime-сессий.
 type Host interface {
 	Context() context.Context
-	UserID() uint32
+	UserID() uint64
 	VoiceCallsEnabled() bool
 	IsCallAllowed(user string) bool
 	Stopped() bool

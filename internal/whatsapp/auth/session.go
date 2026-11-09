@@ -9,5 +9,5 @@ type State struct {
 // Session stores channels for a single authentication session.
 type Session struct {
 	StateChan chan State
-	UserId    uint32
+	UserId uint64
 }

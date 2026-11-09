@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ikermy/air-common/pkg/comdb"
-	"github.com/ikermy/air-common/pkg/comdom"
-	"github.com/ikermy/air-common/pkg/crypto"
-	"github.com/ikermy/air-common/pkg/mode"
-	"github.com/ikermy/air-common/pkg/model/create"
+	"github.com/ikermy/air-common/v2/pkg/comdb"
+	"github.com/ikermy/air-common/v2/pkg/comdom"
+	"github.com/ikermy/air-common/v2/pkg/crypto"
+	"github.com/ikermy/air-common/v2/pkg/mode"
+	"github.com/ikermy/air-common/v2/pkg/model/create"
 )
 
 type Implementation struct {
@@ -57,40 +57,7 @@ func (nb *NullBytes) Scan(value any) error {
 	return nil
 }
 
-func (r *Implementation) UpdateWhatsBotData(ctx context.Context, userId uint32, mk [32]byte, data string, enabled bool) error {
-	ctx, cancel := context.WithTimeout(ctx, mode.GetSQLTimeToCancel())
-	defer cancel()
-
-	tx, err := r.db.Conn().BeginTx(ctx, nil)
-	if err != nil {
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			return fmt.Errorf("тайм-аут (%d с) при начале транзакции: %w", mode.GetSQLTimeToCancel(), err)
-		case errors.Is(err, context.Canceled):
-			return fmt.Errorf("операция отменена при начале транзакции: %w", err)
-		default:
-			return fmt.Errorf("ошибка начала транзакции: %w", err)
-		}
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	var foundUserId sql.NullInt32
-	err = tx.QueryRowContext(ctx, "SELECT UserId FROM channels WHERE UserId = ? LIMIT 1", userId).Scan(&foundUserId)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			return fmt.Errorf("тайм-аут (%d с) при проверке существования записи: %w", mode.GetSQLTimeToCancel(), err)
-		case errors.Is(err, context.Canceled):
-			return fmt.Errorf("операция отменена при проверке существования записи: %w", err)
-		default:
-			return fmt.Errorf("ошибка проверки существования записи: %w", err)
-		}
-	}
-
-	if errors.Is(err, sql.ErrNoRows) || !foundUserId.Valid {
-		return fmt.Errorf("запись для пользователя %d не найдена в таблице channels", userId)
-	}
-
+func (r *Implementation) UpdateWhatsBotData(ctx context.Context, userId uint64, mk [32]byte, data string, enabled bool) error {
 	// Шифруем данные канала MasterKey'ом ($mk$) если он доступен
 	var zeroKey [32]byte
 	if !bytes.Equal(mk[:], zeroKey[:]) {
@@ -101,35 +68,10 @@ func (r *Implementation) UpdateWhatsBotData(ctx context.Context, userId uint32, 
 		data = encrypted
 	}
 
-	enabledInt := 0
-	if enabled {
-		enabledInt = 1
-	}
-
-	_, err = tx.ExecContext(ctx, `
-  UPDATE channels
-  SET Whats = ?, Whats_enabled = ?
-  WHERE UserId = ?`, data, enabledInt, userId)
-	if err != nil {
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			return fmt.Errorf("тайм-аут (%d с) при обновлении данных WhatsApp бота: %w", mode.GetSQLTimeToCancel(), err)
-		case errors.Is(err, context.Canceled):
-			return fmt.Errorf("операция отменена при обновлении данных WhatsApp бота: %w", err)
-		default:
-			return fmt.Errorf("ошибка обновления данных WhatsApp бота: %w", err)
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			return fmt.Errorf("тайм-аут (%d с) при коммите транзакции: %w", mode.GetSQLTimeToCancel(), err)
-		case errors.Is(err, context.Canceled):
-			return fmt.Errorf("операция отменена при коммите транзакции: %w", err)
-		default:
-			return fmt.Errorf("ошибка коммита транзакции: %w", err)
-		}
+	// Dual-write: legacy channels + user_channels/user_channel_configs.
+	// Иначе при включённом CHANNELS_V2_READ_ENABLED WhatsApp пропадает из UI.
+	if err := r.db.SaveChannelDataRaw(userId, "whatsbot", data, enabled); err != nil {
+		return fmt.Errorf("ошибка обновления данных WhatsApp бота: %w", err)
 	}
 
 	return nil
@@ -198,7 +140,7 @@ func (r *Implementation) GetWaUserBotUsers(ctx context.Context) ([]domain.WaUser
 	return users, nil
 }
 
-func (r *Implementation) GetWaUser(ctx context.Context, userId uint32) (*domain.WaUserBotData, error) {
+func (r *Implementation) GetWaUser(ctx context.Context, userId uint64) (*domain.WaUserBotData, error) {
 	ctx, cancel := context.WithTimeout(ctx, mode.GetSQLTimeToCancel())
 	defer cancel()
 

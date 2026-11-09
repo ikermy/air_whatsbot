@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ikermy/air-common/pkg/com"
-	"github.com/ikermy/air-common/pkg/crypto"
+	"github.com/ikermy/air-common/v2/pkg/com"
+	"github.com/ikermy/air-common/v2/pkg/crypto"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 )
 
@@ -16,7 +16,7 @@ type cachedMasterKey struct {
 	expiresAt time.Time
 }
 
-func (u *User) getMasterKey(userID uint32) ([32]byte, error) {
+func (u *User) getMasterKey(userID uint64) ([32]byte, error) {
 	u.masterKeyMu.Lock()
 	if cached, ok := u.masterKeys[userID]; ok && time.Now().Before(cached.expiresAt) {
 		u.masterKeyMu.Unlock()
@@ -37,13 +37,13 @@ func (u *User) getMasterKey(userID uint32) ([32]byte, error) {
 	return key, nil
 }
 
-func (u *User) invalidateMasterKey(userID uint32) {
+func (u *User) invalidateMasterKey(userID uint64) {
 	u.masterKeyMu.Lock()
 	delete(u.masterKeys, userID)
 	u.masterKeyMu.Unlock()
 }
 
-func (u *User) decryptSessionData(userId uint32, raw string) (string, error) {
+func (u *User) decryptSessionData(userId uint64, raw string) (string, error) {
 	if u.rpc == nil {
 		return "", fmt.Errorf("пользователь %d: RPC клиент не инициализирован", userId)
 	}

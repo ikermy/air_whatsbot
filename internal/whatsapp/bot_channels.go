@@ -10,8 +10,8 @@ import (
 
 	"air_whatsbot/internal/metrics"
 
-	"github.com/ikermy/air-common/pkg/comdom"
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/comdom"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/polymorfa/hypermeow/types"
 	_ "modernc.org/sqlite"
@@ -130,10 +130,10 @@ func (b *Bot) startResponseListener(respId uint64, usrCh *model.Ch) {
 
 // dialogResolver — порт получения/создания диалога.
 type dialogResolver interface {
-	GetOrSetTreadAndResponder(userID uint32, responderRealId uint64, responderName string, chatType comdom.ChannelType) (uint64, error)
+	GetOrSetTreadAndResponder(userID uint64, responderRealId uint64, responderName string, chatType comdom.ChannelType) (uint64, error)
 }
 
-func validateResponder(userID uint32, senderID uint64) error {
+func validateResponder(userID uint64, senderID uint64) error {
 	if userID == 0 {
 		return fmt.Errorf("invalid userId: %d", userID)
 	}
@@ -143,7 +143,7 @@ func validateResponder(userID uint32, senderID uint64) error {
 	return nil
 }
 
-func dialogIDForUser(userID uint32, senderID uint64, senderName string, db dialogResolver) (uint64, error) {
+func dialogIDForUser(userID uint64, senderID uint64, senderName string, db dialogResolver) (uint64, error) {
 	if userID == 0 {
 		return 0, fmt.Errorf("invalid userId: %d", userID)
 	}
@@ -164,7 +164,7 @@ func dialogIDForUser(userID uint32, senderID uint64, senderName string, db dialo
 // initUserChannels инициализирует модель, канал и диалог для респондента.
 func initUserChannels(
 	ctx context.Context,
-	userID uint32,
+	userID uint64,
 	senderID uint64,
 	senderName string,
 	db dialogResolver,

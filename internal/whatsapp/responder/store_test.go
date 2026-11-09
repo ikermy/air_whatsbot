@@ -13,12 +13,12 @@ type fakeCache struct {
 	err    error
 }
 
-func (f *fakeCache) Has(context.Context, uint32, int64) (bool, error) { return f.has, f.err }
-func (f *fakeCache) Set(_ context.Context, _ uint32, senderID int64) error {
+func (f *fakeCache) Has(context.Context, uint64, int64) (bool, error) { return f.has, f.err }
+func (f *fakeCache) Set(_ context.Context, _ uint64, senderID int64) error {
 	f.setIDs = append(f.setIDs, senderID)
 	return f.err
 }
-func (f *fakeCache) LoadUser(context.Context, uint32) ([]int64, error) { return f.ids, f.err }
+func (f *fakeCache) LoadUser(context.Context, uint64) ([]int64, error) { return f.ids, f.err }
 
 func TestStoreLoadOrStoreAndCount(t *testing.T) {
 	s := NewStore(nil)

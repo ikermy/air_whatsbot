@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ikermy/air-common/pkg/crypto"
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/crypto"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	_ "modernc.org/sqlite"
 )
@@ -78,7 +78,7 @@ func (u *User) processBotsState(userDetails []domain.WaUserBotData) {
 	}
 }
 
-func (u *User) GetBotUsername(userID uint32) string {
+func (u *User) GetBotUsername(userID uint64) string {
 	value, ok := u.uBot.Load(userID)
 	if !ok {
 		return ""
@@ -92,7 +92,7 @@ func (u *User) GetBotUsername(userID uint32) string {
 }
 
 // BotState сообщает, существует ли бот для пользователя и остановлен ли он.
-func (u *User) BotState(userID uint32) (found bool, stopped bool) {
+func (u *User) BotState(userID uint64) (found bool, stopped bool) {
 	value, ok := u.uBot.Load(userID)
 	if !ok {
 		return false, false
@@ -105,7 +105,7 @@ func (u *User) BotState(userID uint32) (found bool, stopped bool) {
 }
 
 // restartUserBot перезапускает бота для конкретного пользователя с перезагрузкой всех параметров из БД
-func (u *User) restartUserBot(userId uint32) error {
+func (u *User) restartUserBot(userId uint64) error {
 	logger.Info("Получена команда на перезапуск бота...", userId)
 
 	// Получаем данные конкретного пользователя из БД
@@ -182,12 +182,12 @@ func (u *User) restartUserBot(userId uint32) error {
 	return nil
 }
 
-func (u *User) StopUserBot(userId uint32) error {
+func (u *User) StopUserBot(userId uint64) error {
 	return u.stopUserBot(userId)
 }
 
 // stopUserBot останавливает бота для конкретного пользователя и удаляет его из карты
-func (u *User) stopUserBot(userId uint32) error {
+func (u *User) stopUserBot(userId uint64) error {
 	value, exists := u.uBot.Load(userId)
 	if !exists {
 		logger.Warn("Бот не найден", userId)
@@ -234,12 +234,12 @@ func (u *User) stopUserBot(userId uint32) error {
 	return nil
 }
 
-func (u *User) RestartUserBot(userId uint32) error {
+func (u *User) RestartUserBot(userId uint64) error {
 	return u.restartUserBot(userId)
 }
 
 // StartUserBot запускает бота для конкретного пользователя
-func (u *User) StartUserBot(userId uint32) error {
+func (u *User) StartUserBot(userId uint64) error {
 	logger.Info("Получена команда на запуск бота...", userId)
 
 	// Проверяем, запущен ли уже бот для этого пользователя
@@ -321,7 +321,7 @@ func (u *User) createAssistantModel(user domain.WaUserBotData) *model.Assistant 
 }
 
 // GetUserContactsStreaming отправляет контакты и группы пользователя через канал в потоковом режиме.
-func (u *User) GetUserContactsStreaming(userID uint32, dataChan chan<- any) error {
+func (u *User) GetUserContactsStreaming(userID uint64, dataChan chan<- any) error {
 	value, exists := u.uBot.Load(userID)
 	if !exists {
 		return fmt.Errorf("WhatsApp: пользователь %d: бот не найден", userID)

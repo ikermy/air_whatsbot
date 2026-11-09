@@ -9,8 +9,8 @@ import (
 
 	"air_whatsbot/internal/whatsapp"
 
-	"github.com/ikermy/air-common/pkg/comdom"
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/comdom"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/purpshell/meowcaller"
 	"google.golang.org/grpc"
@@ -20,13 +20,13 @@ import (
 )
 
 type CallAPI interface {
-	InitiateOutgoingCall(context.Context, uint32, string, ...whatsapp.CallEventHandler) (*meowcaller.Call, error)
-	SubscribeCallEvents(context.Context, uint32, string, uint64) (<-chan whatsapp.CallEvent, error)
-	HangupCall(uint32, string) error
+	InitiateOutgoingCall(context.Context, uint64, string, ...whatsapp.CallEventHandler) (*meowcaller.Call, error)
+	SubscribeCallEvents(context.Context, uint64, string, uint64) (<-chan whatsapp.CallEvent, error)
+	HangupCall(uint64, string) error
 }
 
 type DB interface {
-	GetActiveProvider(userID uint32) (comdom.ProviderType, error)
+	GetActiveProvider(userID uint64) (comdom.ProviderType, error)
 }
 
 type Server struct {
@@ -115,7 +115,7 @@ func (s *Server) HangupCall(_ context.Context, req *HangupCallRequest) (*HangupC
 	return &HangupCallResponse{CallId: req.GetCallId(), Status: "hangup_requested"}, nil
 }
 
-func toProtoEvent(_ uint32, event whatsapp.CallEvent) *CallEvent {
+func toProtoEvent(_ uint64, event whatsapp.CallEvent) *CallEvent {
 	normalized := model.NormalizeRealtimeEvent(model.RealtimeEvent{
 		Type: event.Type, Text: event.Text, Delta: event.Delta, Err: event.Err, ResponseID: event.ResponseID, Data: event.Data, Files: event.Files,
 	})

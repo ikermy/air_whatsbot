@@ -14,7 +14,7 @@ import (
 )
 
 // Stream отправляет контакты и группы пользователя через канал в потоковом режиме.
-func Stream(ctx context.Context, client *whatsmeow.Client, userID uint32, dataChan chan<- any) error {
+func Stream(ctx context.Context, client *whatsmeow.Client, userID uint64, dataChan chan<- any) error {
 	// Структуры для разных типов контактов, соответствующие формату AiR_TgUserBot
 	// ContactInfo содержит базовую информацию о контакте (пользователе или боте).
 	type ContactInfo struct {

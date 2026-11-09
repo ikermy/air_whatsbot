@@ -14,7 +14,7 @@ import (
 
 // Bot — минимальный порт авторизуемого бота.
 type Bot interface {
-	UserID() uint32
+	UserID() uint64
 	WhatsAppClient() *whatsmeow.Client
 	Device() *devicestore.Store
 	// PrepareReauth сбрасывает текущую сессию и пересоздаёт клиентов перед повторной авторизацией.
@@ -27,15 +27,15 @@ type Bot interface {
 // хранилищу, мастер-ключу и запуску рабочего бота.
 type Host interface {
 	Context() context.Context
-	EnsureAuthBot(ctx context.Context, userID uint32) (Bot, error)
-	DeleteBot(userID uint32)
-	StartUserBot(userID uint32) error
-	MasterKey(userID uint32) [32]byte
+	EnsureAuthBot(ctx context.Context, userID uint64) (Bot, error)
+	DeleteBot(userID uint64)
+	StartUserBot(userID uint64) error
+	MasterKey(userID uint64) [32]byte
 }
 
 // AuthenticateWithQR прогоняет полный цикл QR-авторизации пользователя и
 // публикует состояния в stateChan.
-func AuthenticateWithQR(host Host, userID uint32, stateChan chan<- State) error {
+func AuthenticateWithQR(host Host, userID uint64, stateChan chan<- State) error {
 	authCtx, authCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer authCancel()
 

@@ -13,8 +13,8 @@ import (
 	devicestore "air_whatsbot/internal/whatsapp/devicestore"
 	responder "air_whatsbot/internal/whatsapp/responder"
 
-	"github.com/ikermy/air-common/pkg/com"
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/com"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/polymorfa/hypermeow"
 	"github.com/polymorfa/hypermeow/types/events"
@@ -78,7 +78,7 @@ func (b *Bot) StopUserBot() {
 
 // parseWaUserBotContainer — основной метод
 
-func (u *User) createOrUpdateBot(userID uint32, containerData *devicestore.Store, assist *model.Assistant) (*Bot, error) {
+func (u *User) createOrUpdateBot(userID uint64, containerData *devicestore.Store, assist *model.Assistant) (*Bot, error) {
 	// Проверяем, существует ли уже такой бот
 	if value, exists := u.uBot.Load(userID); exists {
 		existingBot := value.(*Bot)
@@ -96,7 +96,7 @@ func (u *User) createOrUpdateBot(userID uint32, containerData *devicestore.Store
 }
 
 // Инициализирует нового бота с заданными параметрами
-func (u *User) initializeBot(userID uint32, tokenData *devicestore.Store, assist *model.Assistant, autoConnect bool) (*Bot, error) {
+func (u *User) initializeBot(userID uint64, tokenData *devicestore.Store, assist *model.Assistant, autoConnect bool) (*Bot, error) {
 	// Создаем логгер для этого пользователя
 	//logger := waLog.Stdout(fmt.Sprintf("WhatsApp[%d]", userID), "INFO", true)
 

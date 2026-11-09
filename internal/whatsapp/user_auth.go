@@ -8,7 +8,7 @@ import (
 	authpkg "air_whatsbot/internal/whatsapp/auth"
 	"air_whatsbot/internal/whatsapp/devicestore"
 
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	waLog "github.com/polymorfa/hypermeow/util/log"
 )
@@ -17,12 +17,12 @@ import (
 
 func (u *User) Context() context.Context { return u.ctx }
 
-func (u *User) MasterKey(userID uint32) [32]byte { return u.userMasterKey(userID) }
+func (u *User) MasterKey(userID uint64) [32]byte { return u.userMasterKey(userID) }
 
-func (u *User) DeleteBot(userID uint32) { u.uBot.Delete(userID) }
+func (u *User) DeleteBot(userID uint64) { u.uBot.Delete(userID) }
 
 // EnsureAuthBot возвращает существующего бота или создаёт временного для QR-авторизации.
-func (u *User) EnsureAuthBot(ctx context.Context, userID uint32) (authpkg.Bot, error) {
+func (u *User) EnsureAuthBot(ctx context.Context, userID uint64) (authpkg.Bot, error) {
 	if value, exists := u.uBot.Load(userID); exists {
 		if bot, ok := value.(*Bot); ok && bot != nil {
 			return bot, nil

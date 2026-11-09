@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/ikermy/air-common/pkg/comdom"
+import "github.com/ikermy/air-common/v2/pkg/comdom"
 
 // Notifications события уведомлений.
 type Notifications struct {
@@ -16,7 +16,7 @@ type WaUserBotData struct {
 	AssistName       string              // Имя ассистента
 	AssistantId      string              // Идентификатор ассистента
 	MetaAction       string              // Поле MetaAction из модели ассистента
-	UserId           uint32              // Идентификатор пользователя
+	UserId uint64              // Идентификатор пользователя
 	AskLimit         uint32              // Лимит запросов
 	Events           Notifications       // При каких событиях присылать уведомления
 	Provider         comdom.ProviderType // Провайдер модели

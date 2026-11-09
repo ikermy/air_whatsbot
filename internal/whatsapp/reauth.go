@@ -3,7 +3,7 @@ package whatsapp
 import (
 	"fmt"
 
-	"github.com/ikermy/air-common/pkg/com"
+	"github.com/ikermy/air-common/v2/pkg/com"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 )
 
@@ -12,13 +12,13 @@ type reauthNotifier interface {
 }
 
 type reauthChannelDisabler interface {
-	SetChannelEnabled(userID uint32, channel string, enabled bool) error
+	SetChannelEnabled(userID uint64, channel string, enabled bool) error
 }
 
 // runReauth выполняет шаги повторной авторизации независимо: сбой одного шага
 // (например, транспорта уведомлений) не должен мешать отключить канал и сбросить
 // сессию, иначе бот останется в нерабочем состоянии.
-func runReauth(userID uint32, notifier reauthNotifier, disabler reauthChannelDisabler, reset func() error) error {
+func runReauth(userID uint64, notifier reauthNotifier, disabler reauthChannelDisabler, reset func() error) error {
 	if userID == 0 {
 		return fmt.Errorf("получен некорректный userId: %d", userID)
 	}

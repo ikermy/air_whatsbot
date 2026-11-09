@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/model"
 )
 
 // ErrCallNotFound возвращается при подписке на неизвестный звонок.

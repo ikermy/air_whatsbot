@@ -16,16 +16,16 @@ import (
 
 // Controller описывает минимальный набор операций WhatsApp-ботов, нужный HTTP/WS-адаптеру.
 type Controller interface {
-	GetBotUsername(userID uint32) string
-	StartUserBot(userID uint32) error
-	StopUserBot(userID uint32) error
-	RestartUserBot(userID uint32) error
+	GetBotUsername(userID uint64) string
+	StartUserBot(userID uint64) error
+	StopUserBot(userID uint64) error
+	RestartUserBot(userID uint64) error
 	// AuthenticateWithQRForWeb запускает процесс QR-авторизации и пишет состояния в канал.
-	AuthenticateWithQRForWeb(userID uint32, stateChan chan<- authpkg.State) error
+	AuthenticateWithQRForWeb(userID uint64, stateChan chan<- authpkg.State) error
 	// GetUserContactsStreaming стримит контакты пользователя в канал.
-	GetUserContactsStreaming(userID uint32, dataChan chan<- any) error
+	GetUserContactsStreaming(userID uint64, dataChan chan<- any) error
 	// BotState сообщает, существует ли бот и остановлен ли он.
-	BotState(userID uint32) (found bool, stopped bool)
+	BotState(userID uint64) (found bool, stopped bool)
 }
 
 // Handler адаптирует операции ботов и QR-авторизации к HTTP/WebSocket.

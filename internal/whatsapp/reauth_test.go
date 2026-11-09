@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ikermy/air-common/pkg/com"
+	"github.com/ikermy/air-common/v2/pkg/com"
 )
 
 type fakeNotifier struct {
@@ -22,7 +22,7 @@ type fakeChannelDisabler struct {
 	err    error
 }
 
-func (f *fakeChannelDisabler) SetChannelEnabled(uint32, string, bool) error {
+func (f *fakeChannelDisabler) SetChannelEnabled(uint64, string, bool) error {
 	f.called = true
 	return f.err
 }

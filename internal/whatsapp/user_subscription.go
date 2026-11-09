@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ikermy/air-common/pkg/com"
+	"github.com/ikermy/air-common/v2/pkg/com"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 )
 
 // Получает MasterKey пользователя от Landing
-func (u *User) userMasterKey(userID uint32) [32]byte {
+func (u *User) userMasterKey(userID uint64) [32]byte {
 	var (
 		userMasterKey [32]byte
 		err           error
@@ -24,7 +24,7 @@ func (u *User) userMasterKey(userID uint32) [32]byte {
 }
 
 // Проверяет подписку пользователя
-func (u *User) checkUserSubscription(userId uint32) error {
+func (u *User) checkUserSubscription(userId uint64) error {
 	err := com.CheckUserSubscription(u.db, userId)
 	if err != nil {
 		var commonErr *com.SubscriptionError

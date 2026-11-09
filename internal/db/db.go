@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/ikermy/air-common/pkg/comdb"
+	"github.com/ikermy/air-common/v2/pkg/comdb"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 )
 
@@ -69,7 +69,7 @@ func (d *DB) GetExitCh() <-chan struct{} {
 }
 
 // UpdateWhatsBotData Обновляет данные канала после фактической авторизации на сервере
-func (d *DB) UpdateWhatsBotData(ctx context.Context, userId uint32, mk [32]byte, data string, enabled bool) error {
+func (d *DB) UpdateWhatsBotData(ctx context.Context, userId uint64, mk [32]byte, data string, enabled bool) error {
 	return d.repo.Intermal.UpdateWhatsBotData(ctx, userId, mk, data, enabled)
 }
 
@@ -79,7 +79,7 @@ func (d *DB) GetWaUserBotUsers(ctx context.Context) ([]domain.WaUserBotData, err
 }
 
 // GetWaUser получает данные WA бота по userID
-func (d *DB) GetWaUser(ctx context.Context, userId uint32) (*domain.WaUserBotData, error) {
+func (d *DB) GetWaUser(ctx context.Context, userId uint64) (*domain.WaUserBotData, error) {
 	return d.repo.Intermal.GetWaUser(ctx, userId)
 }
 

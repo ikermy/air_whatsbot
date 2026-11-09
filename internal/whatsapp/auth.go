@@ -5,6 +5,6 @@ import (
 )
 
 // AuthenticateWithQRForWeb запускает QR-авторизацию через пакет auth.
-func (u *User) AuthenticateWithQRForWeb(userID uint32, stateChan chan<- authpkg.State) error {
+func (u *User) AuthenticateWithQRForWeb(userID uint64, stateChan chan<- authpkg.State) error {
 	return authpkg.AuthenticateWithQR(u, userID, stateChan)
 }

@@ -99,14 +99,14 @@ func NormalizeRoute(path string) string {
 	return trimmed
 }
 
-func BotLabel(userID uint32) string {
+func BotLabel(userID uint64) string {
 	return strconv.FormatUint(uint64(userID), 10)
 }
 
-func TrackActiveDialogs(userID uint32, count int) {
+func TrackActiveDialogs(userID uint64, count int) {
 	ActiveDialogs.WithLabelValues(BotLabel(userID)).Set(float64(count))
 }
 
-func TrackOperatorModeDialogs(userID uint32, count int) {
+func TrackOperatorModeDialogs(userID uint64, count int) {
 	OperatorModeDialogs.WithLabelValues(BotLabel(userID)).Set(float64(count))
 }

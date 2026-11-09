@@ -8,7 +8,7 @@ import (
 )
 
 // InitiateOutgoingCall запускает звонок через бота пользователя.
-func (u *User) InitiateOutgoingCall(ctx context.Context, userID uint32, target string, handlers ...CallEventHandler) (*meowcaller.Call, error) {
+func (u *User) InitiateOutgoingCall(ctx context.Context, userID uint64, target string, handlers ...CallEventHandler) (*meowcaller.Call, error) {
 	bot, err := u.botForUser(userID)
 	if err != nil {
 		return nil, err
@@ -17,7 +17,7 @@ func (u *User) InitiateOutgoingCall(ctx context.Context, userID uint32, target s
 }
 
 // HangupCall завершает звонок пользователя через фасад User.
-func (u *User) HangupCall(userID uint32, callID string) error {
+func (u *User) HangupCall(userID uint64, callID string) error {
 	bot, err := u.botForUser(userID)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (u *User) HangupCall(userID uint32, callID string) error {
 }
 
 // ActiveCallIDs возвращает активные звонки указанного пользователя.
-func (u *User) ActiveCallIDs(userID uint32) ([]string, error) {
+func (u *User) ActiveCallIDs(userID uint64) ([]string, error) {
 	bot, err := u.botForUser(userID)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (u *User) ActiveCallIDs(userID uint32) ([]string, error) {
 }
 
 // SubscribeCallEvents подписывает клиента на события звонка пользователя.
-func (u *User) SubscribeCallEvents(ctx context.Context, userID uint32, callID string, afterSequence uint64) (<-chan CallEvent, error) {
+func (u *User) SubscribeCallEvents(ctx context.Context, userID uint64, callID string, afterSequence uint64) (<-chan CallEvent, error) {
 	bot, err := u.botForUser(userID)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (u *User) SubscribeCallEvents(ctx context.Context, userID uint32, callID st
 	return bot.SubscribeCallEvents(ctx, callID, afterSequence)
 }
 
-func (u *User) botForUser(userID uint32) (*Bot, error) {
+func (u *User) botForUser(userID uint64) (*Bot, error) {
 	value, ok := u.uBot.Load(userID)
 	if !ok {
 		return nil, fmt.Errorf("WhatsApp-бот пользователя %d не найден", userID)

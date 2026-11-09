@@ -10,14 +10,14 @@ import (
 
 // ReadUID извлекает и валидирует query-параметр uid (обязателен и больше нуля),
 // записывая ошибку в том же формате, что и остальной HTTP-слой.
-func ReadUID(w http.ResponseWriter, r *http.Request) (uint32, bool) {
+func ReadUID(w http.ResponseWriter, r *http.Request) (uint64, bool) {
 	uidStr := r.URL.Query().Get("uid")
 	if uidStr == "" {
 		writeUIDError(w, "uid is required")
 		return 0, false
 	}
 
-	uid, err := strconv.ParseUint(uidStr, 10, 32)
+	uid, err := strconv.ParseUint(uidStr, 10, 64)
 	if err != nil {
 		logger.Error("Некорректный uid: %v", err)
 		writeUIDError(w, "invalid uid")
@@ -29,7 +29,7 @@ func ReadUID(w http.ResponseWriter, r *http.Request) (uint32, bool) {
 		return 0, false
 	}
 
-	return uint32(uid), true
+	return uid, true
 }
 
 func writeUIDError(w http.ResponseWriter, message string) {

@@ -14,14 +14,14 @@ import (
 
 type fakeController struct{}
 
-func (fakeController) GetBotUsername(uint32) string                      { return "" }
-func (fakeController) StartUserBot(uint32) error                         { return nil }
-func (fakeController) StopUserBot(uint32) error                          { return nil }
-func (fakeController) RestartUserBot(uint32) error                       { return nil }
-func (fakeController) BotState(uint32) (bool, bool)                      { return true, false }
-func (fakeController) GetUserContactsStreaming(uint32, chan<- any) error { return nil }
+func (fakeController) GetBotUsername(uint64) string                      { return "" }
+func (fakeController) StartUserBot(uint64) error                         { return nil }
+func (fakeController) StopUserBot(uint64) error                          { return nil }
+func (fakeController) RestartUserBot(uint64) error                       { return nil }
+func (fakeController) BotState(uint64) (bool, bool)                      { return true, false }
+func (fakeController) GetUserContactsStreaming(uint64, chan<- any) error { return nil }
 
-func (fakeController) AuthenticateWithQRForWeb(_ uint32, stateChan chan<- authpkg.State) error {
+func (fakeController) AuthenticateWithQRForWeb(_ uint64, stateChan chan<- authpkg.State) error {
 	stateChan <- authpkg.State{Type: "qr_code", Payload: "qr-1"}
 	stateChan <- authpkg.State{Type: "qr-success", Payload: "scanned"}
 	stateChan <- authpkg.State{Type: "success", Payload: "Авторизация успешно завершена: 123"}

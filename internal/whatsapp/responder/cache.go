@@ -18,9 +18,9 @@ const (
 
 // Cache хранит метки уже известных респондентов (первое взаимодействие).
 type Cache interface {
-	Has(ctx context.Context, userID uint32, senderID int64) (bool, error)
-	Set(ctx context.Context, userID uint32, senderID int64) error
-	LoadUser(ctx context.Context, userID uint32) ([]int64, error)
+	Has(ctx context.Context, userID uint64, senderID int64) (bool, error)
+	Set(ctx context.Context, userID uint64, senderID int64) error
+	LoadUser(ctx context.Context, userID uint64) ([]int64, error)
 }
 
 type redisCache struct {
@@ -35,7 +35,7 @@ func NewRedisCache(client redis.UniversalClient) Cache {
 	return &redisCache{client: client}
 }
 
-func (c *redisCache) Has(ctx context.Context, userID uint32, senderID int64) (bool, error) {
+func (c *redisCache) Has(ctx context.Context, userID uint64, senderID int64) (bool, error) {
 	result, err := c.client.Exists(ctx, knownResponderKey(userID, senderID)).Result()
 	if err != nil {
 		return false, err
@@ -43,11 +43,11 @@ func (c *redisCache) Has(ctx context.Context, userID uint32, senderID int64) (bo
 	return result > 0, nil
 }
 
-func (c *redisCache) Set(ctx context.Context, userID uint32, senderID int64) error {
+func (c *redisCache) Set(ctx context.Context, userID uint64, senderID int64) error {
 	return c.client.Set(ctx, knownResponderKey(userID, senderID), "1", knownResponderTTL).Err()
 }
 
-func (c *redisCache) LoadUser(ctx context.Context, userID uint32) ([]int64, error) {
+func (c *redisCache) LoadUser(ctx context.Context, userID uint64) ([]int64, error) {
 	pattern := fmt.Sprintf("%s*", knownResponderUserPrefix(userID))
 	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
 
@@ -67,15 +67,15 @@ func (c *redisCache) LoadUser(ctx context.Context, userID uint32) ([]int64, erro
 	return ids, nil
 }
 
-func knownResponderKey(userID uint32, senderID int64) string {
+func knownResponderKey(userID uint64, senderID int64) string {
 	return fmt.Sprintf("known_responder:%d:%d:%d", knownResponderServiceID, userID, senderID)
 }
 
-func knownResponderUserPrefix(userID uint32) string {
+func knownResponderUserPrefix(userID uint64) string {
 	return fmt.Sprintf("known_responder:%d:%d:", knownResponderServiceID, userID)
 }
 
-func parseKnownResponderKey(userID uint32, key string) (int64, bool) {
+func parseKnownResponderKey(userID uint64, key string) (int64, bool) {
 	prefix := knownResponderUserPrefix(userID)
 	if !strings.HasPrefix(key, prefix) {
 		return 0, false

@@ -13,13 +13,13 @@ import (
 
 type validationCallAPI struct{}
 
-func (validationCallAPI) InitiateOutgoingCall(context.Context, uint32, string, ...whatsapp.CallEventHandler) (*meowcaller.Call, error) {
+func (validationCallAPI) InitiateOutgoingCall(context.Context, uint64, string, ...whatsapp.CallEventHandler) (*meowcaller.Call, error) {
 	panic("must not be called")
 }
-func (validationCallAPI) SubscribeCallEvents(context.Context, uint32, string, uint64) (<-chan whatsapp.CallEvent, error) {
+func (validationCallAPI) SubscribeCallEvents(context.Context, uint64, string, uint64) (<-chan whatsapp.CallEvent, error) {
 	panic("must not be called")
 }
-func (validationCallAPI) HangupCall(uint32, string) error { panic("must not be called") }
+func (validationCallAPI) HangupCall(uint64, string) error { panic("must not be called") }
 
 func TestStartOutgoingCallValidatesRequest(t *testing.T) {
 	s := NewServer(validationCallAPI{}, nil)

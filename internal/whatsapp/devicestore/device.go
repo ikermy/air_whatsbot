@@ -78,7 +78,7 @@ func initContainer(ctx context.Context, l waLog.Logger) (*sqlstore.Container, er
 	return container, nil
 }
 
-func parseDeviceData(containerString string, userId uint32) (DeviceData, error) {
+func parseDeviceData(containerString string, userId uint64) (DeviceData, error) {
 	var devData DeviceData
 	if err := json.Unmarshal([]byte(containerString), &devData); err != nil {
 		return devData, fmt.Errorf("ошибка разбора JSON для %d: %w", userId, err)
@@ -89,7 +89,7 @@ func parseDeviceData(containerString string, userId uint32) (DeviceData, error) 
 	return devData, nil
 }
 
-func parseJID(id string, userId uint32) (types.JID, error) {
+func parseJID(id string, userId uint64) (types.JID, error) {
 	jid, err := types.ParseJID(id)
 	if err != nil {
 		return jid, fmt.Errorf("ошибка разбора JID для %d: %w", userId, err)
@@ -111,7 +111,7 @@ func fillBaseDeviceFields(device *store.Device, devData DeviceData, jid types.JI
 	device.AdvSecretKey = devData.AdvSecretKey
 }
 
-func ensureAdvSecretKey(device *store.Device, userId uint32) error {
+func ensureAdvSecretKey(device *store.Device, userId uint64) error {
 	if device.AdvSecretKey == nil || len(device.AdvSecretKey) != 32 {
 		newKey := make([]byte, 32)
 		if _, err := rand.Read(newKey); err != nil {

@@ -7,7 +7,7 @@ import (
 
 	"air_whatsbot/internal/whatsapp/calls"
 
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/polymorfa/hypermeow"
 	"github.com/purpshell/meowcaller"
 )
@@ -17,7 +17,7 @@ type CallEvent = calls.CallEvent
 type CallEventHandler = calls.CallEventHandler
 
 type realtimeProviderRouter interface {
-	GetRealtimeProvider(userID uint32) (model.RealtimeProvider, bool)
+	GetRealtimeProvider(userID uint64) (model.RealtimeProvider, bool)
 }
 
 var ErrCallNotFound = calls.ErrCallNotFound
@@ -25,7 +25,7 @@ var ErrCallNotFound = calls.ErrCallNotFound
 // Bot реализует calls.Host.
 
 func (b *Bot) Context() context.Context          { return b.ctx }
-func (b *Bot) UserID() uint32                    { return b.userID }
+func (b *Bot) UserID() uint64                    { return b.userID }
 func (b *Bot) VoiceCallsEnabled() bool           { return b.voiceCall }
 func (b *Bot) Stopped() bool                     { return b.stopped.Load() }
 func (b *Bot) CallClient() *meowcaller.Client    { return b.callClient }

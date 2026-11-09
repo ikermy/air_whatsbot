@@ -16,7 +16,7 @@ import (
 
 // repository — минимальный порт хранилища, нужный Store для сохранения сессии.
 type repository interface {
-	UpdateWhatsBotData(ctx context.Context, userID uint32, mk [32]byte, data string, enabled bool) error
+	UpdateWhatsBotData(ctx context.Context, userID uint64, mk [32]byte, data string, enabled bool) error
 }
 
 // Store использует in-memory SQLite с сохранением в JSON.
@@ -32,7 +32,7 @@ type Store struct {
 }
 
 // ParseUserBotContainer восстанавливает Store из сериализованного JSON пользователя.
-func ParseUserBotContainer(ctx context.Context, userId uint32, containerString string, repo repository) (*Store, error) {
+func ParseUserBotContainer(ctx context.Context, userId uint64, containerString string, repo repository) (*Store, error) {
 	l := waLog.Stdout(fmt.Sprintf("WhatsApp[%d]", userId), "INFO", true)
 
 	container, err := initContainer(ctx, l)
@@ -123,7 +123,7 @@ func (s *Store) GetDevice() *store.Device {
 }
 
 // SaveJSON сохраняет данные устройства в БД в виде JSON
-func (s *Store) SaveJSON(ctx context.Context, userID uint32, mk [32]byte, firstAuthorization bool) error {
+func (s *Store) SaveJSON(ctx context.Context, userID uint64, mk [32]byte, firstAuthorization bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

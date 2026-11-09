@@ -4,7 +4,7 @@ import (
 	responder "air_whatsbot/internal/whatsapp/responder"
 	"strconv"
 
-	"github.com/ikermy/air-common/pkg/com"
+	"github.com/ikermy/air-common/v2/pkg/com"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/polymorfa/hypermeow/types"
 )

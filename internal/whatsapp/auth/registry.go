@@ -42,7 +42,7 @@ func (r *Registry) Remove(sessionID string) {
 // Нужен, чтобы новое WebSocket-подключение для того же пользователя не
 // отклонялось, а заменяло предыдущее: иначе событие success уходит в старое,
 // уже не слушаемое соединение.
-func (r *Registry) CancelUser(userID uint32) {
+func (r *Registry) CancelUser(userID uint64) {
 	if r == nil {
 		return
 	}

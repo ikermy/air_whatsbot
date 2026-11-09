@@ -16,11 +16,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ikermy/air-common/pkg/comdb"
-	"github.com/ikermy/air-common/pkg/crm"
-	"github.com/ikermy/air-common/pkg/endpoint"
-	"github.com/ikermy/air-common/pkg/model"
-	"github.com/ikermy/air-common/pkg/operator"
+	"github.com/ikermy/air-common/v2/pkg/comdb"
+	"github.com/ikermy/air-common/v2/pkg/crm"
+	"github.com/ikermy/air-common/v2/pkg/endpoint"
+	"github.com/ikermy/air-common/v2/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/operator"
 	"github.com/ikermy/air-logger/v2/pkg/logger"
 	"github.com/polymorfa/hypermeow"
 	"github.com/polymorfa/hypermeow/proto/waE2E"
@@ -45,9 +45,9 @@ type CRM = crm.Inter
 
 // Repository — порт хранилища пользовательских WhatsApp-ботов.
 type Repository interface {
-	UpdateWhatsBotData(ctx context.Context, userID uint32, mk [32]byte, data string, enabled bool) error
+	UpdateWhatsBotData(ctx context.Context, userID uint64, mk [32]byte, data string, enabled bool) error
 	GetWaUserBotUsers(ctx context.Context) ([]domain.WaUserBotData, error)
-	GetWaUser(ctx context.Context, userID uint32) (*domain.WaUserBotData, error)
+	GetWaUser(ctx context.Context, userID uint64) (*domain.WaUserBotData, error)
 }
 
 // DB — единый порт хранилища WhatsApp: внешнее хранилище air-common плюс
@@ -58,7 +58,7 @@ type DB interface {
 }
 
 type ORCClient interface {
-	GetUserMasterKey(ctx context.Context, userID uint32) ([32]byte, error)
+	GetUserMasterKey(ctx context.Context, userID uint64) ([32]byte, error)
 }
 
 // Start — ядро является единственным владельцем lifecycle realtime-сессии:
@@ -83,7 +83,7 @@ func countSyncMap(m *sync.Map) int {
 }
 
 type Bot struct {
-	userID     uint32
+	userID uint64
 	b          *whatsmeow.Client
 	callClient *meowcaller.Client
 	calls      *callspkg.Manager
@@ -124,7 +124,7 @@ type User struct {
 	// HTTP/WS-адаптер (методы промотируются на *User)
 	*handlerspkg.Handler
 	authRegistry *authpkg.Registry
-	uBot         sync.Map // key: uint32 (userID), value: *Bot
+	uBot         sync.Map // key: uint64(userID), value: *Bot
 	start        Start    // Ядро Start — владелец lifecycle realtime-сессий
 	// Канал запуска realtime-сессий для ядра Start (владелец — User, без глобалов)
 	startCh chan model.StartCh
@@ -136,7 +136,7 @@ type User struct {
 	// Получение ключа пользователя
 	rpc         ORCClient
 	masterKeyMu sync.Mutex
-	masterKeys  map[uint32]cachedMasterKey
+	masterKeys  map[uint64]cachedMasterKey
 }
 
 func New(parent context.Context, d DB, m Model, e Endpoint, c CRM, o ORCClient, redisClient redis.UniversalClient) *User {
@@ -149,7 +149,7 @@ func New(parent context.Context, d DB, m Model, e Endpoint, c CRM, o ORCClient, 
 		mod:            m,
 		crm:            c,
 		rpc:            o,
-		masterKeys:     make(map[uint32]cachedMasterKey),
+		masterKeys:     make(map[uint64]cachedMasterKey),
 		responderCache: responder.NewRedisCache(redisClient),
 		startCh:        make(chan model.StartCh, 100),
 	}
@@ -169,7 +169,7 @@ func (u *User) SetStart(s Start) { u.start = s }
 
 // DisableOperatorMode отключает режим оператора и уведомляет AI-модель
 // вызывается из Startpoints при получении команды от оператора
-func (u *User) DisableOperatorMode(userId uint32, dialogId uint64, silent ...bool) error {
+func (u *User) DisableOperatorMode(userId uint64, dialogId uint64, silent ...bool) error {
 	// Определяем значение silent (по умолчанию false)
 	isSilent := false
 	if len(silent) > 0 {

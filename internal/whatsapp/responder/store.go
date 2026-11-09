@@ -54,7 +54,7 @@ func (s *Store) Count() int {
 }
 
 // Known проверяет метку «уже взаимодействовал» в кеше. Без кеша всегда false.
-func (s *Store) Known(ctx context.Context, userID uint32, senderID int64) (bool, error) {
+func (s *Store) Known(ctx context.Context, userID uint64, senderID int64) (bool, error) {
 	if s.cache == nil {
 		return false, nil
 	}
@@ -62,7 +62,7 @@ func (s *Store) Known(ctx context.Context, userID uint32, senderID int64) (bool,
 }
 
 // SetKnown сохраняет метку «уже взаимодействовал» в кеше. Без кеша — no-op.
-func (s *Store) SetKnown(ctx context.Context, userID uint32, senderID int64) error {
+func (s *Store) SetKnown(ctx context.Context, userID uint64, senderID int64) error {
 	if s.cache == nil {
 		return nil
 	}
@@ -70,7 +70,7 @@ func (s *Store) SetKnown(ctx context.Context, userID uint32, senderID int64) err
 }
 
 // LoadUser возвращает известных респондентов пользователя из кеша.
-func (s *Store) LoadUser(ctx context.Context, userID uint32) ([]int64, error) {
+func (s *Store) LoadUser(ctx context.Context, userID uint64) ([]int64, error) {
 	if s.cache == nil {
 		return nil, nil
 	}

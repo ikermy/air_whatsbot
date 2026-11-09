@@ -4,14 +4,14 @@ import (
 	"air_whatsbot/internal/domain"
 	"context"
 
-	"github.com/ikermy/air-common/pkg/comdb"
+	"github.com/ikermy/air-common/v2/pkg/comdb"
 )
 
 // InterDB внутренние методы для работы с БД WhatsApp блтами
 type InterDB interface {
-	UpdateWhatsBotData(ctx context.Context, userId uint32, mk [32]byte, data string, enabled bool) error
+	UpdateWhatsBotData(ctx context.Context, userId uint64, mk [32]byte, data string, enabled bool) error
 	GetWaUserBotUsers(ctx context.Context) ([]domain.WaUserBotData, error)
-	GetWaUser(ctx context.Context, userId uint32) (*domain.WaUserBotData, error)
+	GetWaUser(ctx context.Context, userId uint64) (*domain.WaUserBotData, error)
 }
 
 // ExtDB общие DB-методы

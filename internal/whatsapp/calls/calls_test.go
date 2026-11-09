@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ikermy/air-common/pkg/model"
+	"github.com/ikermy/air-common/v2/pkg/model"
 	"github.com/polymorfa/hypermeow"
 	"github.com/purpshell/meowcaller"
 )
@@ -13,7 +13,7 @@ import (
 type stubHost struct{}
 
 func (stubHost) Context() context.Context                         { return context.Background() }
-func (stubHost) UserID() uint32                                   { return 1 }
+func (stubHost) UserID() uint64                                   { return 1 }
 func (stubHost) VoiceCallsEnabled() bool                          { return false }
 func (stubHost) IsCallAllowed(string) bool                        { return true }
 func (stubHost) Stopped() bool                                    { return false }
