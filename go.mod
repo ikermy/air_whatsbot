@@ -6,7 +6,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/ikermy/air-common/v2 v2.0.3
-	github.com/ikermy/air-logger/v2 v2.1.4
+	github.com/ikermy/air-logger/v2 v2.1.5
 	github.com/polymorfa/hypermeow v0.0.0-20260906031440-90f9e4ec2c88
 	github.com/prometheus/client_golang v1.24.1
 	github.com/purpshell/meowcaller v0.0.0-20260906234207-c48c3e2a243c
