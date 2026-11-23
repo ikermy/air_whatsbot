@@ -5,16 +5,16 @@ go 1.26.0
 require (
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/gorilla/websocket v1.5.3
-	github.com/ikermy/air-common/v2 v2.0.3
-	github.com/ikermy/air-logger/v2 v2.1.4
+	github.com/ikermy/air-common/v2 v2.0.4
+	github.com/ikermy/air-logger/v2 v2.1.5
 	github.com/polymorfa/hypermeow v0.0.0-20260906031440-90f9e4ec2c88
-	github.com/prometheus/client_golang v1.24.1
+	github.com/prometheus/client_golang v1.25.0
 	github.com/purpshell/meowcaller v0.0.0-20260906234207-c48c3e2a243c
-	github.com/redis/go-redis/v9 v9.22.0
+	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rs/zerolog v1.35.1
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
-	modernc.org/sqlite v1.60.1
+	modernc.org/sqlite v1.62.0
 )
 
 require (
@@ -35,37 +35,37 @@ require (
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
-	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.7.0 // indirect
-	github.com/petermattis/goid v0.0.0-20260820044319-269ab09b5261 // indirect
-	github.com/pion/datachannel v1.6.3 // indirect
-	github.com/pion/dtls/v3 v3.1.10 // indirect
+	github.com/petermattis/goid v0.0.0-20260918085751-abfca077860b // indirect
+	github.com/pion/datachannel v1.6.4 // indirect
+	github.com/pion/dtls/v3 v3.1.15 // indirect
 	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/opus v0.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/sctp v1.12.0 // indirect
-	github.com/pion/transport/v5 v5.1.1 // indirect
+	github.com/pion/sctp v1.12.1 // indirect
+	github.com/pion/transport/v5 v5.1.5 // indirect
 	github.com/polymorfa/libsignal-protocol-go v0.2.3-0.20260806162910-a2adef2e8a11 // indirect
-	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.70.1 // indirect
-	github.com/prometheus/procfs v0.21.1 // indirect
+	github.com/prometheus/client_model v0.6.3 // indirect
+	github.com/prometheus/common v0.72.0 // indirect
+	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/r3labs/sse/v2 v2.10.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	go.mau.fi/util v0.10.1 // indirect
+	go.mau.fi/util v0.11.0 // indirect
 	go.uber.org/atomic v1.12.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
+	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261104224025-d1e00e9f33ab // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261110000943-09e21b237f2c // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
-	modernc.org/libc v1.77.1 // indirect
+	modernc.org/libc v1.81.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
